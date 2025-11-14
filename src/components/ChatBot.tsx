@@ -195,9 +195,9 @@ ${level === 'высокий'
 🎯 **Границы:**
 • Вежливо отказывайте от задач, которые не в вашей зоне
 • Не участвуйте в офисных сплетнях
-• Уважайте личное пр��странство других
+• Уважайте личное прстранство других
 
-💬 **Поддержка:**
+���� **��оддержка:**
 • Поделитесь переживаниями с доверенным коллегой
 • Участвуйте в корпоративных мероприятиях
 • Благодарите за помощь и поддержку
@@ -247,33 +247,35 @@ ${level === 'высокий'
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="min-h-screen bg-white flex flex-col max-h-screen overflow-hidden max-h-screen overflow-hidden">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-4 py-4">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
+      <div className="bg-white border-b border-gray-200 px-3 sm:px-4 py-3 sm:py-4 flex-shrink-0 flex-shrink-0">
+        <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <Button
             onClick={onGoToDashboard}
             variant="outline"
-            className="gap-2"
+            className="gap-2 h-9 sm:h-10 text-sm sm:text-base order-2 sm:order-1 w-full sm:w-auto"
+            size="sm"
           >
-            <ArrowLeft size={20} />
-            Вернуться в дашборд
+            <ArrowLeft size={16} className="sm:w-5 sm:h-5" />
+            <span className="hidden sm:inline">Вернуться в дашборд</span>
+            <span className="sm:hidden">Назад</span>
           </Button>
-          <div className="flex items-center gap-3">
-            <div className="bg-[#00B33C] text-white px-3 py-1 rounded">
+          <div className="flex items-center gap-2 sm:gap-3 order-1 sm:order-2 w-full sm:w-auto justify-between sm:justify-start">
+            <div className="bg-[#00B33C] text-white px-2 sm:px-3 py-1 rounded text-sm sm:text-base">
               CDEK
             </div>
-            <div>
-              <h1 className="text-gray-900">AI-Ассистент</h1>
-              <p className="text-sm text-gray-500">ID: {employeeId}</p>
+            <div className="flex-1 sm:flex-none">
+              <h1 className="text-gray-900 text-base sm:text-xl">AI-Ассистент</h1>
+              <p className="text-xs sm:text-sm text-gray-500">ID: {employeeId}</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-6">
-        <div className="max-w-4xl mx-auto space-y-4">
+      <div className="flex-1 overflow-y-auto px-3 sm:px-3 sm:px-4 py-4 sm:py-4 sm:py-6" style={{ paddingBottom: '80px' }} style={{ paddingBottom: '80px' }}>
+        <div className="max-w-4xl mx-auto space-y-3 sm:space-y-3 sm:space-y-4">
           {messages.map((message, index) => (
             <div key={index}>
               <div
@@ -326,21 +328,21 @@ ${level === 'высокий'
       </div>
 
       {/* Input */}
-      <div className="bg-white border-t border-gray-200 px-4 py-4">
+      <div className="bg-white border-t border-gray-200 px-3 sm:px-3 sm:px-4 py-3 sm:py-3 sm:py-4 flex-shrink-0 sticky bottom-0 left-0 right-0 flex-shrink-0 sticky bottom-0 left-0 right-0">
         <div className="max-w-4xl mx-auto flex gap-2">
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={handleKeyPress}
             placeholder="Напишите сообщение..."
-            className="flex-1 h-11 bg-gray-50 border-gray-200 rounded-full px-4"
+            className="flex-1 h-10 sm:h-10 sm:h-11 bg-gray-50 border-gray-200 rounded-full px-4 text-sm sm:text-base text-sm sm:text-base"
           />
           <button
             onClick={handleSend}
             disabled={!input.trim()}
-            className="h-11 w-11 rounded-full bg-[#00B33C] hover:bg-[#009933] text-white flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+            className="h-10 w-10 sm:h-10 w-10 sm:h-11 sm:sm:w-11 rounded-full bg-[#00B33C] hover:bg-[#009933] text-white flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
           >
-            <Send size={18} />
+            <Send size={166} className="sm:w-[18px] sm:h-[18px]" className="sm:w-[18px] sm:h-[18px]" />
           </button>
         </div>
       </div>

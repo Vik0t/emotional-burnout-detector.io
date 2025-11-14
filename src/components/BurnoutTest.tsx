@@ -8,6 +8,7 @@ import { ArrowRight, ArrowLeft } from 'lucide-react';
 interface BurnoutTestProps {
   onComplete: (results: TestResults) => void;
   employeeId: string;
+  onLogout: () => void;
 }
 
 export interface TestResults {
@@ -50,7 +51,7 @@ const options = [
   { value: '6', label: 'Всегда' },
 ];
 
-export function BurnoutTest({ onComplete, employeeId }: BurnoutTestProps) {
+export function BurnoutTest({ onComplete, employeeId, onLogout }: BurnoutTestProps) {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<number[]>(new Array(questions.length).fill(-1));
 
@@ -107,28 +108,31 @@ export function BurnoutTest({ onComplete, employeeId }: BurnoutTestProps) {
   const isAnswered = answers[currentQuestion] !== -1;
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-3 sm:p-4">
       <div className="max-w-2xl w-full">
-        {/* Logo */}
-        <div className="text-center mb-6">
+        {/* Logo and Logout */}
+        <div className="flex justify-between items-center mb-4 sm:mb-6">
           <div className="inline-flex items-center gap-2">
-            <div className="bg-[#00B33C] text-white px-3 py-1 rounded">
+            <div className="bg-[#00B33C] text-white px-2 sm:px-3 py-1 rounded text-sm sm:text-base">
               CDEK
             </div>
-            <span className="text-gray-600">ID: {employeeId}</span>
+            <span className="text-gray-600 text-sm sm:text-base">ID: {employeeId}</span>
           </div>
+          <Button onClick={onLogout} variant="outline" size="sm" className="h-8 sm:h-9 text-xs sm:text-sm">
+            ВЫХОД
+          </Button>
         </div>
 
         {/* Question Card */}
-        <div className="bg-white rounded-lg shadow-md border border-gray-200 p-8 mb-6">
+        <div className="bg-white rounded-lg shadow-md border border-gray-200 p-4 sm:p-6 md:p-8 mb-4 sm:mb-6">
           {/* Header inside card */}
-          <div className="text-center mb-6 pb-6 border-b border-gray-200">
-            <h1 className="text-gray-900 mb-3">Тест на выгорание</h1>
-            <p className="text-gray-600">
+          <div className="text-center mb-4 sm:mb-6 pb-4 sm:pb-6 border-b border-gray-200">
+            <h1 className="text-gray-900 mb-2 sm:mb-3 text-xl sm:text-2xl">Тест на выгорание</h1>
+            <p className="text-gray-600 text-sm sm:text-base">
               Вопрос {currentQuestion + 1} из {questions.length}
             </p>
             {/* Progress */}
-            <div className="mt-4">
+            <div className="mt-3 sm:mt-4">
               <Progress value={progress} className="h-2 bg-gray-200">
                 <div 
                   className="h-full bg-[#00B33C] transition-all duration-300 rounded-full"
@@ -138,29 +142,33 @@ export function BurnoutTest({ onComplete, employeeId }: BurnoutTestProps) {
             </div>
           </div>
 
-          <h2 className="text-gray-900 mb-6">
-            {questions[currentQuestion].text}
-          </h2>
+          {/* Question */}
+          <div className="mb-6 sm:mb-8">
+            <p className="text-gray-900 text-base sm:text-lg leading-relaxed">
+              {questions[currentQuestion].text}
+            </p>
+          </div>
 
+          {/* Options */}
           <RadioGroup
-            value={answers[currentQuestion].toString()}
+            value={answers[currentQuestion]?.toString()}
             onValueChange={handleAnswer}
-            className="space-y-2.5"
+            className="space-y-2 sm:space-y-3"
           >
             {options.map((option) => (
               <div
                 key={option.value}
-                onClick={() => handleAnswer(option.value)}
-                className={`flex items-center space-x-3 p-4 rounded-lg border-2 transition-all cursor-pointer ${
-                  answers[currentQuestion].toString() === option.value
+                className={`flex items-center space-x-3 p-3 sm:p-4 rounded-lg border-2 transition-all cursor-pointer ${
+                  answers[currentQuestion]?.toString() === option.value
                     ? 'border-[#00B33C] bg-green-50'
-                    : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                    : 'border-gray-200 hover:border-gray-300 bg-white'
                 }`}
+                onClick={() => handleAnswer(option.value)}
               >
-                <RadioGroupItem value={option.value} id={option.value} />
+                <RadioGroupItem value={option.value} id={option.value} className="flex-shrink-0" />
                 <Label
                   htmlFor={option.value}
-                  className="flex-1 cursor-pointer text-gray-700"
+                  className="flex-1 cursor-pointer text-gray-700 text-sm sm:text-base"
                 >
                   {option.label}
                 </Label>
@@ -170,19 +178,19 @@ export function BurnoutTest({ onComplete, employeeId }: BurnoutTestProps) {
         </div>
 
         {/* Navigation */}
-        <div className="flex gap-4">
+        <div className="flex justify-between gap-3 sm:gap-4">
           <Button
             onClick={handleBack}
-            disabled={currentQuestion === 0}
             variant="outline"
-            className="flex-1 h-12"
+            disabled={currentQuestion === 0}
+            className="h-10 sm:h-12 px-4 sm:px-6 flex-1 sm:flex-none text-sm sm:text-base"
           >
             НАЗАД
           </Button>
           <Button
             onClick={handleNext}
             disabled={!isAnswered}
-            className="flex-1 h-12 bg-[#00B33C] hover:bg-[#009933] text-white"
+            className="bg-[#00B33C] hover:bg-[#009933] text-white h-10 sm:h-12 px-4 sm:px-6 flex-1 sm:flex-auto text-sm sm:text-base"
           >
             {currentQuestion === questions.length - 1 ? 'ЗАВЕРШИТЬ' : 'ДАЛЕЕ'}
           </Button>

@@ -33,9 +33,10 @@ interface DashboardProps {
   employeeId: string;
   onBackToChat: () => void;
   onRetakeTest: () => void;
+  onLogout: () => void;
 }
 
-export function Dashboard({ testResults, employeeId, onBackToChat, onRetakeTest }: DashboardProps) {
+export function Dashboard({ testResults, employeeId, onBackToChat, onRetakeTest, onLogout }: DashboardProps) {
   const { emotionalExhaustion, depersonalization, personalAccomplishment } = testResults;
 
   // Определяем уровень риска
@@ -157,61 +158,66 @@ export function Dashboard({ testResults, employeeId, onBackToChat, onRetakeTest 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-4 py-4">
+      <div className="bg-white border-b border-gray-200 px-3 sm:px-4 py-3 sm:py-4">
         <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-3">
-              <div className="bg-[#00B33C] text-white px-3 py-1 rounded">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-2">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="bg-[#00B33C] text-white px-2 sm:px-3 py-1 rounded text-sm sm:text-base">
                 CDEK
               </div>
               <div>
-                <h1 className="text-gray-900">Дашборд выгорания</h1>
-                <p className="text-sm text-gray-500">ID: {employeeId}</p>
+                <h1 className="text-gray-900 text-base sm:text-xl">Дашборд выгорания</h1>
+                <p className="text-xs sm:text-sm text-gray-500">ID: {employeeId}</p>
               </div>
             </div>
-            <div className="flex gap-3">
-              <Button onClick={onRetakeTest} variant="outline">
+            <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
+              <Button onClick={onRetakeTest} variant="outline" size="sm" className="flex-1 sm:flex-none h-9 sm:h-10 text-xs sm:text-sm">
                 Пройти тест заново
+              </Button>
+              <Button onClick={onLogout} variant="outline" size="sm" className="h-9 sm:h-10 text-xs sm:text-sm">
+                ВЫХОД
               </Button>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-8">
         {/* Risk Level Card */}
-        <Card className="p-8 mb-6" style={{ backgroundColor: risk.bgColor, borderColor: risk.color }}>
-          <div className="flex items-start justify-between gap-8">
-            <div className="flex-1">
-              <h3 className="text-gray-900 mb-3">Уровень выгорания</h3>
-              <div className="flex items-baseline gap-3 mb-4">
-                <span className="text-6xl text-gray-900">
+        <Card className="p-4 sm:p-6 md:p-8 mb-4 sm:mb-6" style={{ backgroundColor: risk.bgColor, borderColor: risk.color }}>
+          <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-4 sm:gap-8">
+            <div className="flex-1 w-full text-center sm:text-left">
+              <h3 className="text-gray-900 mb-2 sm:mb-3 text-lg sm:text-xl">Уровень выгорания</h3>
+              <div className="flex flex-col sm:flex-row items-center sm:items-baseline gap-2 sm:gap-3 mb-3 sm:mb-4">
+                <span className="text-5xl sm:text-6xl text-gray-900">
                   {Math.round((testResults.totalScore / 84) * 100)}%
                 </span>
-                <span className="text-xl text-gray-600">{risk.level} риск</span>
+                <span className="text-lg sm:text-xl text-gray-600">{risk.level} риск</span>
               </div>
-              <p className="text-gray-700 mb-6">
+              <p className="text-gray-700 mb-4 sm:mb-6 text-sm sm:text-base">
                 Обратите внимание на признаки стресса. Рекомендуем поговорить с AI-помощником.
               </p>
               <Button
                 onClick={onBackToChat}
-                className="bg-[#00B33C] hover:bg-[#009933] text-white h-12 px-6"
+                className="bg-[#00B33C] hover:bg-[#009933] text-white h-10 sm:h-12 px-4 sm:px-6 w-full sm:w-auto text-xxs sm:text-base"
               >
-                ПОЛУЧИТЬ ПЕРСОНАЛЬНЫЕ РЕКОМЕНДАЦИИ
+                <span className="hidden sm:inline"><span className="hidden sm:inline">ПОЛУЧИТЬ ПЕРСОНАЛЬНЫЕ РЕКОМЕНДАЦИИ</span>
+                <span className="sm:hidden">ПЕРСОНАЛЬНЫЕ РЕКОМЕНДАЦИИ</span></span>
+                <span className="sm:hidden">ПЕРСОНАЛЬНЫЕ РЕКОМЕНДАЦИИ</span>
               </Button>
             </div>
             <div 
-              className="w-32 h-32 rounded-full flex items-center justify-center flex-shrink-0"
+              className="w-24 h-24 sm:w-32 sm:h-32 rounded-full flex items-center justify-center flex-shrink-0"
               style={{ backgroundColor: `${risk.color}15` }}
             >
-              <AlertCircle size={64} style={{ color: risk.color }} />
+              <AlertCircle size={48} className="sm:w-16 sm:h-16" style={{ color: risk.color }} />
             </div>
           </div>
         </Card>
 
         {/* Metrics Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-          <Card className="p-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-4 sm:mb-6">
+          <Card className="p-4 sm:p-6">
             <div className="flex items-start justify-between mb-4">
               <div>
                 <p className="text-gray-600 mb-1">Эмоциональное истощение</p>
@@ -230,7 +236,7 @@ export function Dashboard({ testResults, employeeId, onBackToChat, onRetakeTest 
             </p>
           </Card>
 
-          <Card className="p-6">
+          <Card className="p-4 sm:p-6">
             <div className="flex items-start justify-between mb-4">
               <div>
                 <p className="text-gray-600 mb-1">Деперсонализация</p>
@@ -249,7 +255,7 @@ export function Dashboard({ testResults, employeeId, onBackToChat, onRetakeTest 
             </p>
           </Card>
 
-          <Card className="p-6">
+          <Card className="p-4 sm:p-6">
             <div className="flex items-start justify-between mb-4">
               <div>
                 <p className="text-gray-600 mb-1">Личные достижения</p>

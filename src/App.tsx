@@ -3,8 +3,10 @@ import { LoginPage } from './components/LoginPage';
 import { BurnoutTest, TestResults } from './components/BurnoutTest';
 import { ChatBot } from './components/ChatBot';
 import { Dashboard } from './components/Dashboard';
+import { AdminDashboard } from './components/AdminDashboard';
+import { EmployeeList } from './components/EmployeeList';
 
-type AppState = 'login' | 'test' | 'chat' | 'dashboard';
+type AppState = 'login' | 'test' | 'chat' | 'dashboard' | 'admin' | 'employeeList';
 
 export default function App() {
   const [currentState, setCurrentState] = useState<AppState>('login');
@@ -13,7 +15,18 @@ export default function App() {
 
   const handleLogin = (id: string) => {
     setEmployeeId(id);
-    setCurrentState('test');
+    // Проверяем, является ли пользователь администратором
+    if (id === '2' || id.toLowerCase() === 'admin') {
+      setCurrentState('admin');
+    } else {
+      setCurrentState('test');
+    }
+  };
+
+  const handleLogout = () => {
+    setEmployeeId('');
+    setTestResults(null);
+    setCurrentState('login');
   };
 
   const handleTestComplete = (results: TestResults) => {
@@ -34,6 +47,10 @@ export default function App() {
     setCurrentState('test');
   };
 
+  const handleViewEmployeeList = () => {
+    setCurrentState('employeeList');
+  };
+
   return (
     <>
       {currentState === 'login' && (
@@ -44,6 +61,7 @@ export default function App() {
         <BurnoutTest 
           onComplete={handleTestComplete} 
           employeeId={employeeId}
+          onLogout={handleLogout}
         />
       )}
       
@@ -61,6 +79,20 @@ export default function App() {
           employeeId={employeeId}
           onBackToChat={handleBackToChat}
           onRetakeTest={handleRetakeTest}
+          onLogout={handleLogout}
+        />
+      )}
+      
+      {currentState === 'admin' && (
+        <AdminDashboard
+          onLogout={handleLogout}
+          onShowEmployeeList={handleViewEmployeeList}
+        />
+      )}
+      
+      {currentState === 'employeeList' && (
+        <EmployeeList
+          onBack={() => setCurrentState('admin')}
         />
       )}
     </>
