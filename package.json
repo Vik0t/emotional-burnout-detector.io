@@ -55,6 +55,8 @@
       "scripts": {
             "dev": "vite",
             "build": "vite build",
-            "deploy": "gh-pages -d build"
+            "deploy": "gh-pages -d build",
+            "dev:bot": "cd backend && npm run dev",
+            "start:bot": "cd backend && npm start"
       }
 }
