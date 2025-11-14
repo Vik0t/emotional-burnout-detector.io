@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { LoginPage } from './components/LoginPage';
 import { BurnoutTest, TestResults } from './components/BurnoutTest';
 import { ChatBot } from './components/ChatBot';
@@ -9,14 +9,13 @@ import { EmployeeList } from './components/EmployeeList';
 type AppState = 'login' | 'test' | 'chat' | 'dashboard' | 'admin' | 'employeeList';
 
 export default function App() {
-  const [currentState, setCurrentState] = useState<AppState>('login');
+  const [currentState, setCurrentState] = useState('login' as AppState);
   const [employeeId, setEmployeeId] = useState('');
-  const [testResults, setTestResults] = useState<TestResults | null>(null);
+  const [testResults, setTestResults] = useState(null as TestResults | null);
 
-  const handleLogin = (id: string) => {
+  const handleLogin = (id: string, isAdmin: boolean) => {
     setEmployeeId(id);
-    // Проверяем, является ли пользователь администратором
-    if (id === '2' || id.toLowerCase() === 'admin') {
+    if (isAdmin) {
       setCurrentState('admin');
     } else {
       setCurrentState('test');

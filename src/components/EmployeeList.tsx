@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
 import { Input } from './ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { 
+import { apiService } from '../services/api';
+import {
   ArrowLeft,
   Search,
   Download,
@@ -24,28 +25,49 @@ export function EmployeeList({ onBack }: EmployeeListProps) {
   const [filterDepartment, setFilterDepartment] = useState<string>('all');
   const [sortBy, setSortBy] = useState<string>('id');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [employeeList, setEmployeeList] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Мок-данные списка сотрудников
-  const employeeList = [
-    { id: 'EMP001', department: 'Курьеры', riskLevel: 'Высокий', score: 68, lastTest: '12.11.2024', status: 'Активен' },
-    { id: 'EMP002', department: 'IT', riskLevel: 'Низкий', score: 32, lastTest: '13.11.2024', status: 'Активен' },
-    { id: 'EMP003', department: 'Логистика', riskLevel: 'Средний', score: 48, lastTest: '11.11.2024', status: 'Активен' },
-    { id: 'EMP004', department: 'Курьеры', riskLevel: 'Высокий', score: 71, lastTest: '10.11.2024', status: 'Активен' },
-    { id: 'EMP005', department: 'Клиент. сервис', riskLevel: 'Средний', score: 52, lastTest: '13.11.2024', status: 'Активен' },
-    { id: 'EMP006', department: 'IT', riskLevel: 'Низкий', score: 28, lastTest: '12.11.2024', status: 'Активен' },
-    { id: 'EMP007', department: 'Управление', riskLevel: 'Низкий', score: 38, lastTest: '09.11.2024', status: 'Активен' },
-    { id: 'EMP008', department: 'Курьеры', riskLevel: 'Высокий', score: 65, lastTest: '13.11.2024', status: 'Активен' },
-    { id: 'EMP009', department: 'Логистика', riskLevel: 'Средний', score: 45, lastTest: '11.11.2024', status: 'Активен' },
-    { id: 'EMP010', department: 'Клиент. сервис', riskLevel: 'Высокий', score: 62, lastTest: '10.11.2024', status: 'Активен' },
-    { id: 'EMP011', department: 'IT', riskLevel: 'Низкий', score: 35, lastTest: '12.11.2024', status: 'Активен' },
-    { id: 'EMP012', department: 'Курьеры', riskLevel: 'Средний', score: 54, lastTest: '13.11.2024', status: 'Активен' },
-    { id: 'EMP013', department: 'Логистика', riskLevel: 'Низкий', score: 41, lastTest: '11.11.2024', status: 'Активен' },
-    { id: 'EMP014', department: 'Курьеры', riskLevel: 'Высокий', score: 69, lastTest: '12.11.2024', status: 'Активен' },
-    { id: 'EMP015', department: 'Клиент. сервис', riskLevel: 'Средний', score: 49, lastTest: '10.11.2024', status: 'Активен' },
-    { id: 'EMP016', department: 'IT', riskLevel: 'Низкий', score: 30, lastTest: '13.11.2024', status: 'Активен' },
-    { id: 'EMP017', department: 'Управление', riskLevel: 'Средний', score: 44, lastTest: '11.11.2024', status: 'Активен' },
-    { id: 'EMP018', department: 'Курьеры', riskLevel: 'Высокий', score: 73, lastTest: '12.11.2024', status: 'Активен' },
-  ];
+  useEffect(() => {
+    const fetchEmployeeData = async () => {
+      try {
+        setLoading(true);
+        const stats = await apiService.getEmployeeStats();
+        
+        // Transform API data to match existing structure
+        const transformedData = stats.map((employee: any) => ({
+          id: employee.employee_id,
+          department: 'Курьеры', // This would come from a department mapping in a real app
+          riskLevel: getRiskLevel(employee.last_score),
+          score: employee.last_score || 0,
+          lastTest: employee.last_test_date ? formatDate(employee.last_test_date) : 'Нет данных',
+          status: employee.is_admin ? 'Админ' : 'Активен'
+        }));
+        
+        setEmployeeList(transformedData);
+      } catch (err) {
+        console.error('Failed to fetch employee data:', err);
+        setError('Failed to load employee data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEmployeeData();
+  }, []);
+
+  const getRiskLevel = (score: number) => {
+    if (score > 60) return 'Высокий';
+    if (score > 40) return 'Средний';
+    return 'Низкий';
+  };
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) return 'Нет данных';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('ru-RU');
+  };
 
   // Фильтрация списка сотрудников
   const filteredEmployees = employeeList.filter(emp => {
@@ -353,6 +375,19 @@ export function EmployeeList({ onBack }: EmployeeListProps) {
             <div className="p-12 text-center bg-white">
               <p className="text-gray-500">Сотрудники не найдены</p>
               <p className="text-sm text-gray-400 mt-2">Попробуйте изменить параметры поиска</p>
+            </div>
+          )}
+          
+          {loading && (
+            <div className="p-12 text-center bg-white">
+              <p className="text-gray-500">Загрузка данных...</p>
+            </div>
+          )}
+          
+          {error && (
+            <div className="p-12 text-center bg-white">
+              <p className="text-red-500">{error}</p>
+              <p className="text-sm text-gray-400 mt-2">Не удалось загрузить данные сотрудников</p>
             </div>
           )}
           

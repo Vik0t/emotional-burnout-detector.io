@@ -1,12 +1,14 @@
+import React, { useState, useEffect } from 'react';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Progress } from './ui/progress';
 import { TestResults } from './BurnoutTest';
-import { 
-  TrendingDown, 
-  TrendingUp, 
-  AlertCircle, 
-  CheckCircle, 
+import { apiService } from '../services/api';
+import {
+  TrendingDown,
+  TrendingUp,
+  AlertCircle,
+  CheckCircle,
   MessageSquare,
   Brain,
   Heart,
@@ -37,7 +39,30 @@ interface DashboardProps {
 }
 
 export function Dashboard({ testResults, employeeId, onBackToChat, onRetakeTest, onLogout }: DashboardProps) {
-  const { emotionalExhaustion, depersonalization, personalAccomplishment } = testResults;
+  const [latestTestResults, setLatestTestResults] = useState(testResults);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchLatestTestResults = async () => {
+      try {
+        setLoading(true);
+        const results = await apiService.getLatestTestResults(employeeId);
+        if (results) {
+          setLatestTestResults(results);
+        }
+      } catch (err) {
+        console.error('Failed to fetch latest test results:', err);
+        setError('Failed to load latest test results');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLatestTestResults();
+  }, [employeeId]);
+
+  const { emotionalExhaustion, depersonalization, personalAccomplishment } = latestTestResults || testResults;
 
   // Определяем уровень риска
   const getRiskLevel = () => {

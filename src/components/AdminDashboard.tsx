@@ -1,9 +1,11 @@
+import React, { useState, useEffect } from 'react';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
-import { 
-  Users, 
-  TrendingUp, 
+import { apiService } from '../services/api';
+import {
+  Users,
+  TrendingUp,
   AlertTriangle, 
   Shield,
   BarChart3,
@@ -44,99 +46,126 @@ interface AdminDashboardProps {
   onShowEmployeeList: () => void;
 }
 
+// Define COLORS constant
+const COLORS = ['#00B33C', '#F59E0B', '#EF4444'];
+
 export function AdminDashboard({ onLogout, onShowEmployeeList }: AdminDashboardProps) {
-  // Мок-данные агрегированной аналитики (в реальном приложении - из API)
-  const totalEmployees = 487;
-  const testedEmployees = 342;
-  const testCoverage = Math.round((testedEmployees / totalEmployees) * 100);
-
-  // Мок-данные списка сотрудников
-  const employeeList = [
-    { id: 'EMP001', department: 'Курьеры', riskLevel: 'Высокий', score: 68, lastTest: '12.11.2024', status: 'Активен' },
-    { id: 'EMP002', department: 'IT', riskLevel: 'Низкий', score: 32, lastTest: '13.11.2024', status: 'Активен' },
-    { id: 'EMP003', department: 'Логистика', riskLevel: 'Средний', score: 48, lastTest: '11.11.2024', status: 'Активен' },
-    { id: 'EMP004', department: 'Курьеры', riskLevel: 'Высокий', score: 71, lastTest: '10.11.2024', status: 'Активен' },
-    { id: 'EMP005', department: 'Клиент. сервис', riskLevel: 'Средний', score: 52, lastTest: '13.11.2024', status: 'Активен' },
-    { id: 'EMP006', department: 'IT', riskLevel: 'Низкий', score: 28, lastTest: '12.11.2024', status: 'Активен' },
-    { id: 'EMP007', department: 'Управление', riskLevel: 'Низкий', score: 38, lastTest: '09.11.2024', status: 'Активен' },
-    { id: 'EMP008', department: 'Курьеры', riskLevel: 'Высокий', score: 65, lastTest: '13.11.2024', status: 'Активен' },
-    { id: 'EMP009', department: 'Логистика', riskLevel: 'Средний', score: 45, lastTest: '11.11.2024', status: 'Активен' },
-    { id: 'EMP010', department: 'Клиент. сервис', riskLevel: 'Высокий', score: 62, lastTest: '10.11.2024', status: 'Активен' },
-    { id: 'EMP011', department: 'IT', riskLevel: 'Низкий', score: 35, lastTest: '12.11.2024', status: 'Активен' },
-    { id: 'EMP012', department: 'Курьеры', riskLevel: 'Средний', score: 54, lastTest: '13.11.2024', status: 'Активен' },
-  ];
-
-  // Распределение по уровням риска
-  const riskDistribution = [
-    { level: 'Низкий', count: 198, percentage: 58, color: '#00B33C' },
-    { level: 'Средний', count: 97, percentage: 28, color: '#F59E0B' },
-    { level: 'Высокий', count: 47, percentage: 14, color: '#EF4444' },
-  ];
-
-  // Данные по департаментам
-  const departmentData = [
-    { name: 'Логистика', avgScore: 45, riskLevel: 'Средний', employees: 89, atRisk: 28 },
-    { name: 'Курьеры', avgScore: 62, riskLevel: 'Высокий', employees: 156, atRisk: 52 },
-    { name: 'Клиент. сервис', avgScore: 51, riskLevel: 'Средний', employees: 67, atRisk: 21 },
-    { name: 'IT', avgScore: 38, riskLevel: 'Низкий', employees: 45, atRisk: 8 },
-    { name: 'Управление', avgScore: 42, riskLevel: 'Средний', employees: 34, atRisk: 12 },
-  ];
-
-  // Тренд за последние 6 месяцев
-  const trendData = [
-    { month: 'Май', avgScore: 48, atRisk: 18 },
-    { month: 'Июнь', avgScore: 52, atRisk: 22 },
-    { month: 'Июль', avgScore: 55, atRisk: 25 },
-    { month: 'Авг', avgScore: 51, atRisk: 21 },
-    { month: 'Сен', avgScore: 49, atRisk: 19 },
-    { month: 'Окт', avgScore: 47, atRisk: 16 },
-  ];
-
-  // Данные для радарной диаграммы (средние показатели по компании)
-  const radarData = [
-    { metric: 'Эмоц. истощение', value: 48, fullMark: 100 },
-    { metric: 'Деперсонализация', value: 35, fullMark: 100 },
-    { metric: 'Личные достиж.', value: 72, fullMark: 100 },
-    { metric: 'Рабочая нагрузка', value: 65, fullMark: 100 },
-    { metric: 'Work-life баланс', value: 58, fullMark: 100 },
-  ];
-
-  // Данные для круговой диаграммы
-  const pieData = [
-    { name: 'Низкий риск', value: 198 },
-    { name: 'Средний риск', value: 97 },
-    { name: 'Высокий риск', value: 47 },
-  ];
-
-  const COLORS = ['#00B33C', '#F59E0B', '#EF4444'];
-
-  // Бизнес-метрики
-  const businessMetrics = [
+  // State for dashboard data
+  const [totalEmployees, setTotalEmployees] = useState(0);
+  const [testedEmployees, setTestedEmployees] = useState(0);
+  const [testCoverage, setTestCoverage] = useState(0);
+  const [riskDistribution, setRiskDistribution] = useState([
+    { level: 'Низкий', count: 0, percentage: 0, color: '#00B33C' },
+    { level: 'Средний', count: 0, percentage: 0, color: '#F59E0B' },
+    { level: 'Высокий', count: 0, percentage: 0, color: '#EF4444' },
+  ]);
+  const [pieData, setPieData] = useState([
+    { name: 'Низкий риск', value: 0 },
+    { name: 'Средний риск', value: 0 },
+    { name: 'Высокий риск', value: 0 },
+  ]);
+  const [departmentData, setDepartmentData] = useState([
+    { name: 'Логистика', avgScore: 0, riskLevel: 'Низкий', employees: 0, atRisk: 0 },
+    { name: 'Курьеры', avgScore: 0, riskLevel: 'Низкий', employees: 0, atRisk: 0 },
+    { name: 'Клиент. сервис', avgScore: 0, riskLevel: 'Низкий', employees: 0, atRisk: 0 },
+    { name: 'IT', avgScore: 0, riskLevel: 'Низкий', employees: 0, atRisk: 0 },
+    { name: 'Управление', avgScore: 0, riskLevel: 'Низкий', employees: 0, atRisk: 0 },
+  ]);
+  const [trendData, setTrendData] = useState([
+    { month: 'Май', avgScore: 0, atRisk: 0 },
+    { month: 'Июнь', avgScore: 0, atRisk: 0 },
+    { month: 'Июль', avgScore: 0, atRisk: 0 },
+    { month: 'Авг', avgScore: 0, atRisk: 0 },
+    { month: 'Сен', avgScore: 0, atRisk: 0 },
+    { month: 'Окт', avgScore: 0, atRisk: 0 },
+  ]);
+  const [radarData, setRadarData] = useState([
+    { metric: 'Эмоц. истощение', value: 0, fullMark: 100 },
+    { metric: 'Деперсонализация', value: 0, fullMark: 100 },
+    { metric: 'Личные достиж.', value: 0, fullMark: 100 },
+    { metric: 'Рабочая нагрузка', value: 0, fullMark: 100 },
+    { metric: 'Work-life баланс', value: 0, fullMark: 100 },
+  ]);
+  const [businessMetrics, setBusinessMetrics] = useState([
     {
       title: 'Прогнозируемая текучесть',
-      value: '14%',
-      trend: -2.3,
-      description: 'Снижение на 2.3% за месяц',
+      value: '0%',
+      trend: 0,
+      description: '',
       icon: Users,
       color: '#00B33C'
     },
     {
       title: 'Потенциальная экономия',
-      value: '₽12.4М',
-      trend: 15,
-      description: 'При снижении выгорания на 30%',
+      value: '₽0М',
+      trend: 0,
+      description: '',
       icon: Target,
       color: '#00B33C'
     },
     {
       title: 'Индекс продуктивности',
-      value: '76/100',
-      trend: 3.2,
-      description: 'Рост на 3.2 пункта',
+      value: '0/100',
+      trend: 0,
+      description: '',
       icon: Zap,
       color: '#F59E0B'
     },
-  ];
+  ]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Fetch dashboard data
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        
+        // Fetch HR statistics
+        const stats = await apiService.getHRStatistics();
+        setTotalEmployees(stats.total_employees);
+        setTestedEmployees(stats.recent_tests);
+        setTestCoverage(Math.round((stats.recent_tests / stats.total_employees) * 100));
+        
+        // Update risk distribution
+        const newRiskDistribution = [
+          { level: 'Низкий', count: stats.low_risk_count, percentage: Math.round((stats.low_risk_count / stats.total_employees) * 100), color: '#00B33C' },
+          { level: 'Средний', count: stats.medium_risk_count, percentage: Math.round((stats.medium_risk_count / stats.total_employees) * 100), color: '#F59E0B' },
+          { level: 'Высокий', count: stats.high_risk_count, percentage: Math.round((stats.high_risk_count / stats.total_employees) * 100), color: '#EF4444' },
+        ];
+        setRiskDistribution(newRiskDistribution);
+        
+        // Update pie data
+        setPieData([
+          { name: 'Низкий риск', value: stats.low_risk_count },
+          { name: 'Средний риск', value: stats.medium_risk_count },
+          { name: 'Высокий риск', value: stats.high_risk_count },
+        ]);
+        
+        // Fetch employee stats for department data
+        const employeeStats = await apiService.getEmployeeStats();
+        
+        // Group by department (mocked for now)
+        const newDepartmentData = [
+          { name: 'Логистика', avgScore: 45, riskLevel: 'Средний', employees: 89, atRisk: 28 },
+          { name: 'Курьеры', avgScore: 62, riskLevel: 'Высокий', employees: 156, atRisk: 52 },
+          { name: 'Клиент. сервис', avgScore: 51, riskLevel: 'Средний', employees: 67, atRisk: 21 },
+          { name: 'IT', avgScore: 38, riskLevel: 'Низкий', employees: 45, atRisk: 8 },
+          { name: 'Управление', avgScore: 42, riskLevel: 'Средний', employees: 34, atRisk: 12 },
+        ];
+        setDepartmentData(newDepartmentData);
+        
+        setLoading(false);
+      } catch (err) {
+        console.error('Error fetching dashboard data:', err);
+        setError('Failed to load dashboard data');
+        setLoading(false);
+      }
+    };
+    
+    fetchDashboardData();
+  }, []);
+
 
   return (
     <div className="min-h-screen bg-gray-50">

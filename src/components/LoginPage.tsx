@@ -1,33 +1,38 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
 import { User, Lock } from 'lucide-react';
+import { apiService } from '../services/api';
 
 interface LoginPageProps {
-  onLogin: (employeeId: string) => void;
+  onLogin: (employeeId: string, isAdmin: boolean) => void;
 }
 
 export function LoginPage({ onLogin }: LoginPageProps) {
   const [login, setLogin] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
-
+    
     if (!login.trim()) {
       setError('Введите логин');
       return;
     }
-
-    // Проверка учетных данных
-    if (login === '1' && password === '') {
-      onLogin('1'); // Обычный пользователь
-    } else if (login === '2' && password === '') {
-      onLogin('2'); // Администратор
-    } else {
+    
+    setLoading(true);
+    
+    try {
+      const user = await apiService.login(login, password);
+      onLogin(user.employeeId, user.isAdmin);
+    } catch (err) {
       setError('Неверный логин или пароль');
+      console.error('Login error:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -69,6 +74,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                   value={login}
                   onChange={(e) => setLogin(e.target.value)}
                   className="pl-10 h-12 bg-gray-50 border-gray-300"
+                  disabled={loading}
                 />
               </div>
             </div>
@@ -88,6 +94,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="pl-10 h-12 bg-gray-50 border-gray-300"
+                  disabled={loading}
                 />
               </div>
             </div>
@@ -101,8 +108,9 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             <Button
               type="submit"
               className="w-full h-12 bg-[#00B33C] hover:bg-[#009933] text-white"
+              disabled={loading}
             >
-              Войти
+              {loading ? 'Вход...' : 'Войти'}
             </Button>
           </form>
 

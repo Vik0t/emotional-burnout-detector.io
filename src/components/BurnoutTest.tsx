@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Button } from './ui/button';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Label } from './ui/label';
 import { Progress } from './ui/progress';
 import { ArrowRight, ArrowLeft } from 'lucide-react';
+import { apiService } from '../services/api';
 
 interface BurnoutTestProps {
   onComplete: (results: TestResults) => void;
@@ -53,7 +54,7 @@ const options = [
 
 export function BurnoutTest({ onComplete, employeeId, onLogout }: BurnoutTestProps) {
   const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [answers, setAnswers] = useState<number[]>(new Array(questions.length).fill(-1));
+  const [answers, setAnswers] = useState(new Array(questions.length).fill(-1) as number[]);
 
   const progress = ((currentQuestion + 1) / questions.length) * 100;
 
@@ -63,11 +64,11 @@ export function BurnoutTest({ onComplete, employeeId, onLogout }: BurnoutTestPro
     setAnswers(newAnswers);
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentQuestion < questions.length - 1) {
       setCurrentQuestion(currentQuestion + 1);
     } else {
-      calculateResults();
+      await calculateResults();
     }
   };
 
@@ -77,7 +78,7 @@ export function BurnoutTest({ onComplete, employeeId, onLogout }: BurnoutTestPro
     }
   };
 
-  const calculateResults = () => {
+  const calculateResults = async () => {
     let emotionalExhaustion = 0;
     let depersonalization = 0;
     let personalAccomplishment = 0;
@@ -95,14 +96,24 @@ export function BurnoutTest({ onComplete, employeeId, onLogout }: BurnoutTestPro
     });
 
     const totalScore = emotionalExhaustion + depersonalization + personalAccomplishment;
-
-    onComplete({
+    
+    const results = {
       emotionalExhaustion,
       depersonalization,
       personalAccomplishment,
       totalScore,
       answers,
-    });
+    };
+
+    try {
+      // Save test results to backend
+      await apiService.saveTestResults(employeeId, results);
+      onComplete(results);
+    } catch (error) {
+      console.error('Failed to save test results:', error);
+      // Still complete the test even if saving fails
+      onComplete(results);
+    }
   };
 
   const isAnswered = answers[currentQuestion] !== -1;
