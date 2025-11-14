@@ -1,19 +1,33 @@
 import { useState } from 'react';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
-import { User } from 'lucide-react';
+import { User, Lock } from 'lucide-react';
 
 interface LoginPageProps {
   onLogin: (employeeId: string) => void;
 }
 
 export function LoginPage({ onLogin }: LoginPageProps) {
-  const [employeeId, setEmployeeId] = useState('');
+  const [login, setLogin] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (employeeId.trim()) {
-      onLogin(employeeId.trim());
+    setError('');
+
+    if (!login.trim()) {
+      setError('Введите логин');
+      return;
+    }
+
+    // Проверка учетных данных
+    if (login === '1' && password === '') {
+      onLogin('1'); // Обычный пользователь
+    } else if (login === '2' && password === '') {
+      onLogin('2'); // Администратор
+    } else {
+      setError('Неверный логин или пароль');
     }
   };
 
@@ -41,27 +55,48 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           </div>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label htmlFor="employeeId" className="block text-gray-700 mb-2">
-                ID сотрудника
+              <label htmlFor="login" className="block text-gray-700 mb-2">
+                Логин
               </label>
               <div className="relative">
                 <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
                   <User size={20} />
                 </div>
                 <Input
-                  id="employeeId"
+                  id="login"
                   type="text"
-                  placeholder="Введите ваш ID"
-                  value={employeeId}
-                  onChange={(e) => setEmployeeId(e.target.value)}
+                  placeholder="Введите логин"
+                  value={login}
+                  onChange={(e) => setLogin(e.target.value)}
                   className="pl-10 h-12 bg-gray-50 border-gray-300"
-                  required
                 />
               </div>
-              <p className="text-sm text-gray-500 mt-2">
-                Ваш ID указан в личном кабинете сотрудника
-              </p>
             </div>
+
+            <div>
+              <label htmlFor="password" className="block text-gray-700 mb-2">
+                Пароль
+              </label>
+              <div className="relative">
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                  <Lock size={20} />
+                </div>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="Введите пароль"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="pl-10 h-12 bg-gray-50 border-gray-300"
+                />
+              </div>
+            </div>
+
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                <p className="text-sm text-red-700">{error}</p>
+              </div>
+            )}
 
             <Button
               type="submit"
