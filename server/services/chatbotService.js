@@ -1,4 +1,77 @@
-function generateChatbotResponse(testResult, message) {
+const OpenAI = require('openai');
+
+async function generateChatbotResponse(testResult, message) {
+  const { emotional_exhaustion, depersonalization, personal_accomplishment } = testResult;
+  
+  // Create a personalized prompt that includes the user's test results
+  const prompt = `Вы AI-ассистент по профилактике эмоционального выгорания.
+У сотрудника следующие показатели:
+- Эмоциональное истощение: ${emotional_exhaustion}/30
+- Деперсонализация: ${depersonalization}/24
+- Личные достижения: ${personal_accomplishment}/30
+
+На основе этих показателей и вопроса сотрудника, дайте персонализированный совет.
+Вопрос сотрудника: "${message}"
+
+Ответите на русском языке, дайте полезный и поддерживающий совет, учитывая показатели выгорания.
+Если показатели высокие, дайте более осторожные рекомендации.
+Если показатели в норме, можно дать общие советы по поддержанию баланса.`;
+
+  // Try to use Hugging Face API with OpenAI-compatible client, fallback to original logic if it fails
+  try {
+    const token = process.env.HF_TOKEN;
+    console.log('Attempting to use Hugging Face API with token:', token ? 'Token provided' : 'No token');
+    
+    if (!token || token === 'your_hugging_face_token_here') {
+      // If no API key is set, fall back to the original keyword-based responses
+      console.log('No Hugging Face token provided, using fallback responses');
+      return generateFallbackResponse(testResult, message);
+    }
+
+    console.log('Sending request to Hugging Face API with prompt:', prompt);
+
+    // Using OpenAI-compatible API from Hugging Face
+    const client = new OpenAI({
+      baseURL: "https://router.huggingface.co/v1",
+      apiKey: token,
+    });
+
+    const chatCompletion = await client.chat.completions.create({
+      model: "Qwen/Qwen2.5-7B-Instruct",
+      messages: [
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+      temperature: 0.7,
+      timeout: 10000, // 10 second timeout
+    });
+
+    console.log('Hugging Face API response:', chatCompletion);
+
+    if (chatCompletion && chatCompletion.choices && chatCompletion.choices.length > 0) {
+      const botResponse = chatCompletion.choices[0].message.content;
+      
+      // Add the personalized test results context
+      return `📊 Ваши показатели:
+• Эмоциональное истощение: ${emotional_exhaustion}/30
+• Деперсонализация: ${depersonalization}/24
+• Личные достижения: ${personal_accomplishment}/30
+
+${botResponse}`;
+    } else {
+      throw new Error('No response from model');
+    }
+  } catch (error) {
+    console.error('Error calling Hugging Face API:', error);
+    // Fall back to the original keyword-based responses
+    return generateFallbackResponse(testResult, message);
+  }
+}
+
+// Original keyword-based responses as fallback
+function generateFallbackResponse(testResult, message) {
   const { emotional_exhaustion, depersonalization, personal_accomplishment } = testResult;
   
   // Convert message to lowercase for easier matching
