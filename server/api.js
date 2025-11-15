@@ -39,7 +39,7 @@ const {
 } = require('./repositories/hrRepository');
 
 // Сервис чат-бота
-const { generateChatbotResponse } = require('./services/chatbotService');
+const { generateChatbotResponse } = require('./services/chatbotService.cjs');
 const bcrypt = require('bcrypt');
 
 const app = express();
