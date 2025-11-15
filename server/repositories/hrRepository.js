@@ -6,6 +6,7 @@ function getEmployeesWithStats(db, callback) {
       u.last_name,
       u.email,
       u.is_admin,
+      u.department,
       u.created_at,
       u.last_login,
       COUNT(tr.id) as test_count,
@@ -49,9 +50,10 @@ function getRiskDistribution(db, callback) {
 function getDepartmentsStats(db, callback) {
   db.all(
     `SELECT
-      COALESCE(u.department, 'Не указано') as department,
-      COUNT(u.employee_id) as employees_count,
-      COALESCE(ROUND(AVG(tr.total_score), 1), 0) as average_score
+      COALESCE(u.department, 'Не указано') as name,
+      COUNT(u.employee_id) as employees,
+      COALESCE(ROUND(AVG(tr.total_score), 1), 0) as avg_score,
+      COUNT(CASE WHEN tr.total_score > 50 THEN 1 END) as at_risk
     FROM users u
     LEFT JOIN (
       SELECT employee_id, total_score
@@ -64,7 +66,7 @@ function getDepartmentsStats(db, callback) {
     ) tr ON u.employee_id = tr.employee_id
     WHERE u.department IS NOT NULL
     GROUP BY u.department
-    ORDER BY average_score DESC`,
+    ORDER BY avg_score DESC`,
     [],
     callback
   );

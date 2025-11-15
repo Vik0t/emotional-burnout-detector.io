@@ -1,15 +1,24 @@
 const migrations = [
-  // Example:
-  // {
-  //   id: 1,
-  //   name: 'add_department_to_users',
-  //   up: (db) => new Promise((resolve, reject) => {
-  //     db.run('ALTER TABLE users ADD COLUMN department TEXT', (err) => {
-  //       if (err) return reject(err);
-  //       resolve();
-  //     });
-  //   })
-  // }
+  {
+    id: 1,
+    name: 'add_password_to_users',
+    up: (db) => new Promise((resolve, reject) => {
+      db.run('ALTER TABLE users ADD COLUMN password_hash TEXT', (err) => {
+        if (err) return reject(err);
+        resolve();
+      });
+    })
+  },
+  {
+    id: 2,
+    name: 'add_department_to_users',
+    up: (db) => new Promise((resolve, reject) => {
+      db.run('ALTER TABLE users ADD COLUMN department TEXT', (err) => {
+        if (err) return reject(err);
+        resolve();
+      });
+    })
+  }
 ];
 
 function ensureMigrationsTable(db) {

@@ -74,7 +74,7 @@ export function AdminDashboard({ onLogout, onShowEmployeeList }: AdminDashboardP
     { name: 'IT', avgScore: 0, riskLevel: 'Низкий', employees: 0, atRisk: 0 },
     { name: 'Управление', avgScore: 0, riskLevel: 'Низкий', employees: 0, atRisk: 0 },
   ]);
-  const [trendData, setTrendData] = useState([
+  const [trendData, setTrendData] = useState<Array<{month: string, avgScore: number, atRisk: number}>>([
     { month: 'Май', avgScore: 0, atRisk: 0 },
     { month: 'Июнь', avgScore: 0, atRisk: 0 },
     { month: 'Июль', avgScore: 0, atRisk: 0 },
@@ -82,7 +82,7 @@ export function AdminDashboard({ onLogout, onShowEmployeeList }: AdminDashboardP
     { month: 'Сен', avgScore: 0, atRisk: 0 },
     { month: 'Окт', avgScore: 0, atRisk: 0 },
   ]);
-  const [radarData, setRadarData] = useState([
+  const [radarData, setRadarData] = useState<Array<{metric: string, value: number, fullMark: number}>>([
     { metric: 'Эмоц. истощение', value: 0, fullMark: 100 },
     { metric: 'Деперсонализация', value: 0, fullMark: 100 },
     { metric: 'Личные достиж.', value: 0, fullMark: 100 },
@@ -148,15 +148,26 @@ export function AdminDashboard({ onLogout, onShowEmployeeList }: AdminDashboardP
         // Fetch employee stats for department data
         const employeeStats = await apiService.getEmployeeStats();
         
-        // Group by department (mocked for now)
-        const newDepartmentData = [
-          { name: 'Логистика', avgScore: 45, riskLevel: 'Средний', employees: 89, atRisk: 28 },
-          { name: 'Курьеры', avgScore: 62, riskLevel: 'Высокий', employees: 156, atRisk: 52 },
-          { name: 'Клиент. сервис', avgScore: 51, riskLevel: 'Средний', employees: 67, atRisk: 21 },
-          { name: 'IT', avgScore: 38, riskLevel: 'Низкий', employees: 45, atRisk: 8 },
-          { name: 'Управление', avgScore: 42, riskLevel: 'Средний', employees: 34, atRisk: 12 },
-        ];
+        // Fetch real department data
+        const departmentStats = await apiService.getDepartmentStats();
+        
+        // Transform department data for display
+        const newDepartmentData = departmentStats.map(dept => ({
+          name: dept.name,
+          avgScore: dept.avg_score,
+          riskLevel: dept.avg_score > 60 ? 'Высокий' : dept.avg_score > 40 ? 'Средний' : 'Низкий',
+          employees: dept.employees,
+          atRisk: dept.at_risk
+        }));
         setDepartmentData(newDepartmentData);
+        
+        // Fetch trend data
+        const trendData = await apiService.getTrendData();
+        setTrendData(trendData);
+        
+        // Fetch company profile data
+        const companyProfileData = await apiService.getCompanyProfileData();
+        setRadarData(companyProfileData);
         
         setLoading(false);
       } catch (err) {

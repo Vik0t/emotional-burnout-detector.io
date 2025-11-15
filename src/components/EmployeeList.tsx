@@ -45,7 +45,7 @@ export function EmployeeList({ onBack, onViewEmployee }: EmployeeListProps) {
         // Transform API data to match existing structure
         const transformedData = stats.map((employee: any) => ({
           id: employee.employee_id,
-          department: 'Курьеры', // This would come from a department mapping in a real app
+          department: employee.department || 'Не указано',
           riskLevel: getRiskLevel(employee.last_score),
           score: employee.last_score || 0,
           lastTest: employee.last_test_date ? formatDate(employee.last_test_date) : 'Нет данных',
@@ -83,6 +83,51 @@ export function EmployeeList({ onBack, onViewEmployee }: EmployeeListProps) {
     return matchesRisk && matchesDepartment;
   });
 
+  // Export data as CSV
+  const exportToCSV = async () => {
+    try {
+      const response = await fetch('http://localhost:3002/api/hr/export');
+      if (!response.ok) {
+        throw new Error('Failed to export data');
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `employee_list_${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error exporting data:', error);
+      // Fallback to client-side export if backend fails
+      const headers = ['ID сотрудника', 'Департамент', 'Уровень риска', 'Балл выгорания', 'Последний тест', 'Статус'];
+      const csvContent = [
+        headers.join(','),
+        ...filteredEmployees.map(emp => [
+          emp.id,
+          emp.department,
+          emp.riskLevel,
+          `${emp.score}/100`,
+          emp.lastTest,
+          emp.status
+        ].map(field => `"${field}"`).join(','))
+      ].join('\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', `employee_list_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -104,12 +149,13 @@ export function EmployeeList({ onBack, onViewEmployee }: EmployeeListProps) {
                 <p className="text-xs sm:text-sm text-gray-500 hidden sm:block">Просмотр данных по сотрудникам</p>
               </div>
             </div>
-            <Button 
-              icon="pi pi-download" 
+            <Button
+              icon="pi pi-download"
               label="ЭКСПОРТ"
               outlined
               size="small"
               className="self-end sm:self-auto"
+              onClick={exportToCSV}
             />
           </div>
         </div>

@@ -1,4 +1,6 @@
-function findOrCreateUser(db, employeeId, callback) {
+const bcrypt = require('bcrypt');
+
+function findOrCreateUser(db, employeeId, password, callback) {
   db.get(
     'SELECT * FROM users WHERE employee_id = ?',
     [employeeId],
@@ -6,22 +8,27 @@ function findOrCreateUser(db, employeeId, callback) {
       if (err) return callback(err);
 
       if (!user) {
-        db.run(
-          'INSERT INTO users (employee_id) VALUES (?)',
-          [employeeId],
-          function (insertErr) {
-            if (insertErr) return callback(insertErr);
+        // Hash password for new user
+        bcrypt.hash(password, 10, (hashErr, hashedPassword) => {
+          if (hashErr) return callback(hashErr);
 
-            db.get(
-              'SELECT * FROM users WHERE id = ?',
-              [this.lastID],
-              (err2, newUser) => {
-                if (err2) return callback(err2);
-                callback(null, newUser, true);
-              }
-            );
-          }
-        );
+          db.run(
+            'INSERT INTO users (employee_id, password_hash) VALUES (?, ?)',
+            [employeeId, hashedPassword],
+            function (insertErr) {
+              if (insertErr) return callback(insertErr);
+
+              db.get(
+                'SELECT * FROM users WHERE id = ?',
+                [this.lastID],
+                (err2, newUser) => {
+                  if (err2) return callback(err2);
+                  callback(null, newUser, true);
+                }
+              );
+            }
+          );
+        });
       } else {
         callback(null, user, false);
       }
@@ -67,8 +74,28 @@ function updateUserTestInfo(db, employeeId, fields, callback) {
   db.run(sql, values, (err) => callback(err));
 }
 
+function verifyUserPassword(db, employeeId, password, callback) {
+  db.get(
+    'SELECT * FROM users WHERE employee_id = ?',
+    [employeeId],
+    (err, user) => {
+      if (err) return callback(err);
+      if (!user) return callback(null, false);
+      
+      // If user doesn't have a password hash, they can't login with password
+      if (!user.password_hash) return callback(null, false);
+      
+      bcrypt.compare(password, user.password_hash, (err, result) => {
+        if (err) return callback(err);
+        callback(null, result);
+      });
+    }
+  );
+}
+
 module.exports = {
   findOrCreateUser,
   getUserByEmployeeId,
-  updateUserTestInfo
+  updateUserTestInfo,
+  verifyUserPassword
 };

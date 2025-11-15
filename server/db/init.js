@@ -69,17 +69,98 @@ function initializeDatabase(db) {
 
       // дефолтный админ
       db.run(`
-        INSERT OR IGNORE INTO users (employee_id, first_name, is_admin)
-        VALUES ('2', 'Admin', TRUE)
+        INSERT OR IGNORE INTO users (employee_id, first_name, is_admin, department)
+        VALUES ('2', 'Admin', TRUE, 'Управление')
       `, (err) => {
         if (err) {
           console.error('Error creating default admin user:', err.message);
           return reject(err);
         } else {
-          console.log('Default admin user created.');
-          resolve();
+          // Set default password for admin user
+          const bcrypt = require('bcrypt');
+          const saltRounds = 10;
+          const defaultPassword = 'admin123';
+          
+          bcrypt.hash(defaultPassword, saltRounds, (hashErr, hashedPassword) => {
+            if (hashErr) {
+              console.error('Error hashing default password:', hashErr.message);
+              return reject(hashErr);
+            }
+            
+            db.run(`
+              UPDATE users
+              SET password_hash = ?
+              WHERE employee_id = '2'
+            `, [hashedPassword], (updateErr) => {
+              if (updateErr) {
+                console.error('Error setting default password:', updateErr.message);
+                return reject(updateErr);
+              } else {
+                console.log('Default admin user created with password.');
+                resolve();
+              }
+            });
+          });
         }
       });
+      
+      // Add sample users with departments
+      const sampleUsers = [
+        { employee_id: '1', first_name: 'Иван', last_name: 'Иванов', department: 'IT' },
+        { employee_id: '3', first_name: 'Петр', last_name: 'Петров', department: 'Логистика' },
+        { employee_id: '4', first_name: 'Мария', last_name: 'Сидорова', department: 'Курьеры' },
+        { employee_id: '5', first_name: 'Анна', last_name: 'Кузнецова', department: 'Клиент. сервис' }
+      ];
+      
+      let completed = 0;
+      sampleUsers.forEach(user => {
+        db.run(`
+          INSERT OR IGNORE INTO users (employee_id, first_name, last_name, department)
+          VALUES (?, ?, ?, ?)
+        `, [user.employee_id, user.first_name, user.last_name, user.department], (err) => {
+          if (err) {
+            console.error('Error creating sample user:', err.message);
+          } else {
+            completed++;
+            if (completed === sampleUsers.length) {
+              console.log('Sample users created.');
+              // Add sample test results
+              addSampleTestResults(db, () => {
+                console.log('Sample data initialization complete.');
+                resolve();
+              });
+            }
+          }
+        });
+      });
+    });
+  });
+}
+
+function addSampleTestResults(db, callback) {
+  // Add sample test results for users
+  const sampleTestResults = [
+    { employee_id: '1', emotional_exhaustion: 15, depersonalization: 8, personal_accomplishment: 25, total_score: 48, answers: '[1,2,3,4,5,1,2,3,4,5,1,2,3,4,5,1,2,3,4,5,1,2,3,4]' },
+    { employee_id: '3', emotional_exhaustion: 22, depersonalization: 15, personal_accomplishment: 18, total_score: 55, answers: '[3,4,5,4,3,2,1,2,3,4,5,4,3,2,1,2,3,4,5,4,3,2,1,2]' },
+    { employee_id: '4', emotional_exhaustion: 25, depersonalization: 18, personal_accomplishment: 12, total_score: 55, answers: '[4,5,5,4,3,3,2,1,2,3,4,5,5,4,3,3,2,1,2,3,4,5,5,4]' },
+    { employee_id: '5', emotional_exhaustion: 18, depersonalization: 12, personal_accomplishment: 22, total_score: 52, answers: '[2,3,4,3,2,1,2,3,4,3,2,1,2,3,4,3,2,1,2,3,4,3,2,1]' }
+  ];
+  
+  let completed = 0;
+  sampleTestResults.forEach(result => {
+    db.run(`
+      INSERT INTO test_results (employee_id, emotional_exhaustion, depersonalization, personal_accomplishment, total_score, answers)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `, [result.employee_id, result.emotional_exhaustion, result.depersonalization, result.personal_accomplishment, result.total_score, result.answers], (err) => {
+      if (err) {
+        console.error('Error creating sample test result:', err.message);
+      } else {
+        completed++;
+        if (completed === sampleTestResults.length) {
+          console.log('Sample test results created.');
+          callback();
+        }
+      }
     });
   });
 }

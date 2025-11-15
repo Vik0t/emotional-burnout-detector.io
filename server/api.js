@@ -16,7 +16,8 @@ const { runMigrations } = require('./db/migrations');
 const {
   findOrCreateUser,
   getUserByEmployeeId,
-  updateUserTestInfo
+  updateUserTestInfo,
+  verifyUserPassword
 } = require('./repositories/usersRepository');
 
 const {
@@ -39,6 +40,7 @@ const {
 
 // Сервис чат-бота
 const { generateChatbotResponse } = require('./services/chatbotService');
+const bcrypt = require('bcrypt');
 
 const app = express();
 const PORT = process.env.PORT || 3002;
@@ -215,34 +217,123 @@ app.get('/health', (req, res) => {
  *         description: Ошибка базы данных
  */
 app.post('/api/login', (req, res) => {
-  const { employeeId } = req.body;
+  const { employeeId, password } = req.body;
 
   if (!employeeId) {
     return res.status(400).json({ error: 'Employee ID is required' });
   }
 
-  findOrCreateUser(db, employeeId, (err, user, isNew) => {
+  if (!password) {
+    return res.status(400).json({ error: 'Password is required' });
+  }
+
+  // First check if user exists and verify password
+  verifyUserPassword(db, employeeId, password, (err, isValid) => {
     if (err) {
-      console.error('Error in findOrCreateUser:', err);
+      console.error('Error verifying password:', err);
       return res.status(500).json({ error: 'Database error' });
     }
 
-    updateUserTestInfo(
-      db,
-      employeeId,
-      { last_login: new Date().toISOString() },
-      (updateErr) => {
-        if (updateErr) {
-          console.error('Error updating last_login:', updateErr);
+    if (!isValid) {
+      // If password is invalid, check if user exists
+      getUserByEmployeeId(db, employeeId, (getUserErr, user) => {
+        if (getUserErr) {
+          console.error('Error getting user:', getUserErr);
+          return res.status(500).json({ error: 'Database error' });
         }
 
-        return res.json({
-          success: true,
+        if (!user) {
+          // User doesn't exist, create new user with password
+          findOrCreateUser(db, employeeId, password, (createErr, newUser, isNew) => {
+            if (createErr) {
+              console.error('Error creating user:', createErr);
+              return res.status(500).json({ error: 'Database error' });
+            }
+
+            updateUserTestInfo(
+              db,
+              employeeId,
+              { last_login: new Date().toISOString() },
+              (updateErr) => {
+                if (updateErr) {
+                  console.error('Error updating last_login:', updateErr);
+                }
+
+                return res.json({
+                  success: true,
+                  employeeId,
+                  isAdmin: newUser?.is_admin === 1 || employeeId === '2'
+                });
+              }
+            );
+          });
+        } else if (!user.password_hash) {
+          // User exists but doesn't have a password yet, set the provided password
+          bcrypt.hash(password, 10, (hashErr, hashedPassword) => {
+            if (hashErr) {
+              console.error('Error hashing password:', hashErr);
+              return res.status(500).json({ error: 'Database error' });
+            }
+
+            db.run(
+              'UPDATE users SET password_hash = ? WHERE employee_id = ?',
+              [hashedPassword, employeeId],
+              (updateErr) => {
+                if (updateErr) {
+                  console.error('Error updating password:', updateErr);
+                  return res.status(500).json({ error: 'Database error' });
+                }
+
+                updateUserTestInfo(
+                  db,
+                  employeeId,
+                  { last_login: new Date().toISOString() },
+                  (updateErr) => {
+                    if (updateErr) {
+                      console.error('Error updating last_login:', updateErr);
+                    }
+
+                    return res.json({
+                      success: true,
+                      employeeId,
+                      isAdmin: user?.is_admin === 1 || employeeId === '2'
+                    });
+                  }
+                );
+              }
+            );
+          });
+        } else {
+          // User exists but password is wrong
+          return res.status(401).json({ error: 'Invalid password' });
+        }
+      });
+    } else {
+      // Password is valid, update last login
+      getUserByEmployeeId(db, employeeId, (getUserErr, user) => {
+        if (getUserErr) {
+          console.error('Error getting user:', getUserErr);
+          return res.status(500).json({ error: 'Database error' });
+        }
+
+        updateUserTestInfo(
+          db,
           employeeId,
-          isAdmin: user?.is_admin === 1 || employeeId === '2'
-        });
-      }
-    );
+          { last_login: new Date().toISOString() },
+          (updateErr) => {
+            if (updateErr) {
+              console.error('Error updating last_login:', updateErr);
+            }
+
+            return res.json({
+              success: true,
+              employeeId,
+              isAdmin: user?.is_admin === 1 || employeeId === '2'
+            });
+          }
+        );
+      });
+    }
   });
 });
 
@@ -742,6 +833,196 @@ app.get('/api/hr/statistics', (req, res) => {
     res.json(stats);
   });
 });
+
+/**
+ * @swagger
+ * /api/hr/trend:
+ *   get:
+ *     summary: Получить данные для графика динамики выгорания по месяцам
+ *     tags:
+ *       - HR
+ *     responses:
+ *       200:
+ *         description: Данные для графика трендов
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   month:
+ *                     type: string
+ *                     example: "Янв 2025"
+ *                   avgScore:
+ *                     type: number
+ *                     format: float
+ *                     example: 45.5
+ *                   atRisk:
+ *                     type: integer
+ *                     example: 12
+ *       500:
+ *         description: Ошибка базы данных
+ */
+app.get('/api/hr/trend', (req, res) => {
+  db.all(`
+    SELECT
+      strftime('%Y-%m', created_at) as month,
+      AVG(total_score) as avg_score,
+      COUNT(CASE WHEN total_score > 50 THEN 1 END) as at_risk_count,
+      COUNT(*) as total_tests
+    FROM test_results
+    GROUP BY strftime('%Y-%m', created_at)
+    ORDER BY month
+  `, [], (err, rows) => {
+    if (err) {
+      console.error('Error getting trend data:', err);
+      return res.status(500).json({ error: 'Database error' });
+    }
+    
+    const trendData = rows.map(row => ({
+      month: formatMonth(row.month),
+      avgScore: Math.round(row.avg_score * 10) / 10,
+      atRisk: row.at_risk_count
+    }));
+    
+    res.json(trendData);
+  });
+});
+
+/**
+ * @swagger
+ * /api/hr/company-profile:
+ *   get:
+ *     summary: Получить данные для радар-чарта профиля компании
+ *     tags:
+ *       - HR
+ *     responses:
+ *       200:
+ *         description: Данные для радар-чарта
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   metric:
+ *                     type: string
+ *                     example: "Эмоц. истощение"
+ *                   value:
+ *                     type: number
+ *                     format: float
+ *                     example: 75
+ *                   fullMark:
+ *                     type: integer
+ *                     example: 100
+ *       500:
+ *         description: Ошибка базы данных
+ */
+app.get('/api/hr/company-profile', (req, res) => {
+  db.get(`
+    SELECT
+      AVG(emotional_exhaustion) as avg_emotional_exhaustion,
+      AVG(depersonalization) as avg_depersonalization,
+      AVG(personal_accomplishment) as avg_personal_accomplishment
+    FROM (
+      SELECT employee_id,
+             MAX(created_at) as latest_test
+      FROM test_results
+      GROUP BY employee_id
+    ) latest_tests
+    JOIN test_results tr ON latest_tests.employee_id = tr.employee_id
+                         AND latest_tests.latest_test = tr.created_at
+  `, [], (err, row) => {
+    if (err) {
+      console.error('Error getting company profile data:', err);
+      return res.status(500).json({ error: 'Database error' });
+    }
+    
+    if (!row) {
+      return res.json([]);
+    }
+    
+    const radarData = [
+      { metric: 'Эмоц. истощение', value: Math.round(row.avg_emotional_exhaustion * 5), fullMark: 100 },
+      { metric: 'Деперсонализация', value: Math.round(row.avg_depersonalization * 5), fullMark: 100 },
+      { metric: 'Личные достиж.', value: Math.round((36 - row.avg_personal_accomplishment) * 2.78), fullMark: 100 },
+      { metric: 'Рабочая нагрузка', value: Math.round((row.avg_emotional_exhaustion + row.avg_depersonalization) * 2.5), fullMark: 100 },
+      { metric: 'Work-life баланс', value: Math.round((36 - row.avg_personal_accomplishment + (30 - row.avg_emotional_exhaustion)) * 1.67), fullMark: 100 }
+    ];
+    
+    res.json(radarData);
+  });
+});
+
+/**
+ * @swagger
+ * /api/hr/export:
+ *   get:
+ *     summary: Экспорт данных сотрудников в CSV
+ *     tags:
+ *       - HR
+ *     produces:
+ *       - text/csv
+ *     responses:
+ *       200:
+ *         description: CSV файл с данными сотрудников
+ *         content:
+ *           text/csv:
+ *             schema:
+ *               type: string
+ *               example: "ID,Департамент,Уровень риска,Балл выгорания,Последний тест,Статус\n1,IT,Низкий,45,2025-01-15,Активен"
+ *       500:
+ *         description: Ошибка базы данных
+ */
+app.get('/api/hr/export', (req, res) => {
+  getEmployeesWithStats(db, (err, rows) => {
+    if (err) {
+      console.error('Error getting employee data for export:', err);
+      return res.status(500).json({ error: 'Database error' });
+    }
+    
+    // Create CSV content
+    const headers = ['ID сотрудника', 'Департамент', 'Уровень риска', 'Балл выгорания', 'Последний тест', 'Статус'];
+    const csvRows = [headers.join(',')];
+    
+    rows.forEach(row => {
+      const riskLevel = row.last_score > 60 ? 'Высокий' : row.last_score > 40 ? 'Средний' : 'Низкий';
+      const lastTest = row.last_test_date ? new Date(row.last_test_date).toLocaleDateString('ru-RU') : 'Нет данных';
+      const status = row.is_admin ? 'Админ' : 'Активен';
+      
+      csvRows.push([
+        `"${row.employee_id}"`,
+        `"${row.department || 'Не указано'}"`,
+        `"${riskLevel}"`,
+        `"${row.last_score || 0}/100"`,
+        `"${lastTest}"`,
+        `"${status}"`
+      ].join(','));
+    });
+    
+    const csvContent = csvRows.join('\n');
+    
+    // Set headers for file download
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="employee_list_${new Date().toISOString().split('T')[0]}.csv"`);
+    
+    res.send(csvContent);
+  });
+});
+
+// Helper function to format month
+function formatMonth(dateString) {
+  const months = {
+    '01': 'Янв', '02': 'Фев', '03': 'Мар', '04': 'Апр',
+    '05': 'Май', '06': 'Июн', '07': 'Июл', '08': 'Авг',
+    '09': 'Сен', '10': 'Окт', '11': 'Ноя', '12': 'Дек'
+  };
+  
+  const [year, month] = dateString.split('-');
+  return `${months[month]} ${year}`;
+}
 
 // ======== Запуск + init/migrate ========
 const DB_ACTION = process.env.DB_ACTION || 'init'; // 'init' | 'migrate' | 'none'

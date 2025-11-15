@@ -27,6 +27,7 @@ export interface EmployeeStats {
   test_count: number;
   last_test_date: string;
   last_score: number;
+  department?: string;
 }
 
 export interface RiskDistribution {
@@ -44,7 +45,7 @@ export interface DepartmentStats {
 
 class ApiService {
   // User authentication
-  async login(employeeId: string, password: string = ''): Promise<User> {
+  async login(employeeId: string, password: string): Promise<User> {
     // If explicitly configured to use no backend (dev-only), return a mock user
     const noBackend = (import.meta as any).env?.VITE_NO_BACKEND === 'true';
     if (noBackend) {
@@ -62,11 +63,8 @@ class ApiService {
       });
 
       if (!response.ok) {
-        // If server replies with non-OK, try a fallback only for the common dev cases 1/2
-        if (employeeId === '1' || employeeId === '2') {
-          return { employeeId, isAdmin: employeeId === '2' };
-        }
-        throw new Error('Failed to login');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to login');
       }
 
       const data = await response.json();
@@ -328,6 +326,49 @@ class ApiService {
       return await response.json();
     } catch (err) {
       return mockDepartments;
+    }
+  }
+
+  async getTrendData(): Promise<Array<{month: string, avgScore: number, atRisk: number}>> {
+    const noBackend = (import.meta as any).env?.VITE_NO_BACKEND === 'true';
+    const mockTrendData = [
+      { month: 'Май', avgScore: 52, atRisk: 8 },
+      { month: 'Июнь', avgScore: 48, atRisk: 12 },
+      { month: 'Июль', avgScore: 45, atRisk: 15 },
+      { month: 'Авг', avgScore: 47, atRisk: 14 },
+      { month: 'Сен', avgScore: 49, atRisk: 10 },
+      { month: 'Окт', avgScore: 46, atRisk: 12 },
+    ];
+    if (noBackend) return mockTrendData;
+    try {
+      const response = await fetch(`${API_BASE_URL}/hr/trend`);
+      if (!response.ok) {
+        return mockTrendData;
+      }
+      return await response.json();
+    } catch (err) {
+      return mockTrendData;
+    }
+  }
+
+  async getCompanyProfileData(): Promise<Array<{metric: string, value: number, fullMark: number}>> {
+    const noBackend = (import.meta as any).env?.VITE_NO_BACKEND === 'true';
+    const mockRadarData = [
+      { metric: 'Эмоц. истощение', value: 65, fullMark: 100 },
+      { metric: 'Деперсонализация', value: 45, fullMark: 100 },
+      { metric: 'Личные достиж.', value: 75, fullMark: 100 },
+      { metric: 'Рабочая нагрузка', value: 55, fullMark: 100 },
+      { metric: 'Work-life баланс', value: 60, fullMark: 100 },
+    ];
+    if (noBackend) return mockRadarData;
+    try {
+      const response = await fetch(`${API_BASE_URL}/hr/company-profile`);
+      if (!response.ok) {
+        return mockRadarData;
+      }
+      return await response.json();
+    } catch (err) {
+      return mockRadarData;
     }
   }
 }

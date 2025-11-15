@@ -153,28 +153,28 @@ export function UserAccount({ employeeId, onLogout, onStartTest, onOpenChat, onV
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-3 sm:px-4 py-3 sm:py-4">
-        <div className="max-w-6xl mx-auto">
+      <div className="bg-white border-b border-gray-200 px-4 py-4">
+        <div className="max-w-4xl mx-auto">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <img src={cdekLogo} alt="CDEK" className="h-5 sm:h-6" />
+            <div className="flex items-center gap-3">
+              <img src={cdekLogo} alt="CDEK" className="h-6" />
               <div>
-                <h1 className="text-gray-900 text-base sm:text-xl">Личный кабинет</h1>
-                <p className="text-xs sm:text-sm text-gray-500">Мониторинг состояния</p>
+                <h1 className="text-gray-900 text-xl">Личный кабинет</h1>
+                <p className="text-sm text-gray-500">Мониторинг состояния</p>
               </div>
             </div>
-            <Button 
+            <Button
               onClick={onLogout}
               label="ВЫХОД"
               outlined
               size="small"
-              className="text-xs sm:text-sm"
+              className="text-sm"
             />
           </div>
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-8">
+      <div className="max-w-4xl mx-auto px-4 py-6">
         {/* Welcome Section */}
         <div className="mb-6">
           <h2 className="text-gray-900 text-xl sm:text-2xl mb-2">Добро пожаловать!</h2>

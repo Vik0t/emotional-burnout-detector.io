@@ -33,8 +33,8 @@ export function LoginPage({ onLogin }: LoginPageProps) {
     try {
       const user = await apiService.login(login, password);
       onLogin(user.employeeId, user.isAdmin);
-    } catch (err) {
-      setError('Неверный логин или пароль');
+    } catch (err: any) {
+      setError(err.message || 'Неверный логин или пароль');
       console.error('Login error:', err);
     } finally {
       setLoading(false);
