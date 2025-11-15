@@ -125,13 +125,14 @@ export function AdminDashboard({ onLogout, onShowEmployeeList }: AdminDashboardP
         const stats = await apiService.getHRStatistics();
         setTotalEmployees(stats.total_employees);
         setTestedEmployees(stats.recent_tests);
-        setTestCoverage(Math.round((stats.recent_tests / stats.total_employees) * 100));
+        setTestCoverage(stats.total_employees > 0 ? Math.round((stats.recent_tests / stats.total_employees) * 100) : 0);
         
         // Update risk distribution
+        const totalWithRisk = stats.high_risk_count + stats.medium_risk_count + stats.low_risk_count;
         const newRiskDistribution = [
-          { level: 'Низкий', count: stats.low_risk_count, percentage: Math.round((stats.low_risk_count / stats.total_employees) * 100), color: '#00B33C' },
-          { level: 'Средний', count: stats.medium_risk_count, percentage: Math.round((stats.medium_risk_count / stats.total_employees) * 100), color: '#F59E0B' },
-          { level: 'Высокий', count: stats.high_risk_count, percentage: Math.round((stats.high_risk_count / stats.total_employees) * 100), color: '#EF4444' },
+          { level: 'Низкий', count: stats.low_risk_count, percentage: totalWithRisk > 0 ? Math.round((stats.low_risk_count / totalWithRisk) * 100) : 0, color: '#00B33C' },
+          { level: 'Средний', count: stats.medium_risk_count, percentage: totalWithRisk > 0 ? Math.round((stats.medium_risk_count / totalWithRisk) * 100) : 0, color: '#F59E0B' },
+          { level: 'Высокий', count: stats.high_risk_count, percentage: totalWithRisk > 0 ? Math.round((stats.high_risk_count / totalWithRisk) * 100) : 0, color: '#EF4444' },
         ];
         setRiskDistribution(newRiskDistribution);
         
@@ -149,12 +150,13 @@ export function AdminDashboard({ onLogout, onShowEmployeeList }: AdminDashboardP
         const departmentStats = await apiService.getDepartmentStats();
         
         // Transform department data
+        // Transform department data to match frontend interface
         const newDepartmentData = departmentStats.map(dept => ({
-          name: dept.name,
-          avgScore: Math.round(dept.avg_score || 0),
-          riskLevel: (dept.avg_score || 0) > 50 ? 'Высокий' : (dept.avg_score || 0) > 30 ? 'Средний' : 'Низкий',
-          employees: dept.employees || 0,
-          atRisk: dept.at_risk || 0
+          name: (dept.department || 'Неизвестно'),
+          avgScore: Math.round(dept.average_score || 0),
+          riskLevel: (dept.average_score || 0) > 50 ? 'Высокий' : (dept.average_score || 0) > 30 ? 'Средний' : 'Низкий',
+          employees: (dept.employees_count || 0),
+          atRisk: Math.round((dept.employees_count || 0) * (((dept.average_score || 0) > 50 ? 0.3 : (dept.average_score || 0) > 30 ? 0.15 : 0.05))) // Calculate based on risk level
         }));
         setDepartmentData(newDepartmentData);
         

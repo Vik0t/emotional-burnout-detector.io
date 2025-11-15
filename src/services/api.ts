@@ -36,10 +36,9 @@ export interface RiskDistribution {
 }
 
 export interface DepartmentStats {
-  name: string;
-  avg_score: number;
-  at_risk: number;
-  employees: number;
+  department: string;
+  average_score: number;
+  employees_count: number;
 }
 
 class ApiService {
@@ -166,16 +165,6 @@ class ApiService {
       throw new Error('Failed to fetch HR statistics');
     }
     
-    return await response.json();
-  }
-
-  async getDepartmentStats(): Promise<DepartmentStats[]> {
-    const response = await fetch(`${API_BASE_URL}/hr/departments`);
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch department stats');
-    }
-
     return await response.json();
   }
 
