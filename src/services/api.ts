@@ -30,6 +30,30 @@ export interface EmployeeStats {
   department?: string;
 }
 
+export interface GamificationData {
+  points: number;
+  streak: number;
+  last_streak_date: string;
+  badges: string[];
+}
+
+export interface BadgeInfo {
+  id: string;
+  name: string;
+  description: string;
+  icon: React.ComponentType<any>;
+  color: string;
+}
+
+export interface LeaderboardEntry {
+  employee_id: string;
+  first_name: string;
+  last_name: string;
+  department: string;
+  points: number;
+  streak: number;
+}
+
 export interface RiskDistribution {
   high: number;
   medium: number;
@@ -369,6 +393,53 @@ class ApiService {
       return await response.json();
     } catch (err) {
       return mockRadarData;
+    }
+  }
+
+  async getGamificationData(employeeId: string): Promise<GamificationData> {
+    const noBackend = (import.meta as any).env?.VITE_NO_BACKEND === 'true';
+    const mockGamificationData: GamificationData = {
+      points: 50,
+      streak: 3,
+      last_streak_date: new Date().toISOString().split('T')[0],
+      badges: ['test_taker', 'improvement_champion']
+    };
+    
+    if (noBackend) return mockGamificationData;
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/users/${employeeId}/gamification`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch gamification data');
+      }
+      return await response.json();
+    } catch (err) {
+      console.error('Error fetching gamification data:', err);
+      return mockGamificationData;
+    }
+  }
+
+  async getLeaderboard(): Promise<LeaderboardEntry[]> {
+    const noBackend = (import.meta as any).env?.VITE_NO_BACKEND === 'true';
+    const mockLeaderboard: LeaderboardEntry[] = [
+      { employee_id: '1', first_name: 'Иван', last_name: 'Иванов', department: 'IT', points: 150, streak: 7 },
+      { employee_id: '2', first_name: 'Петр', last_name: 'Петров', department: 'Логистика', points: 120, streak: 5 },
+      { employee_id: '3', first_name: 'Мария', last_name: 'Сидорова', department: 'Курьеры', points: 100, streak: 3 },
+      { employee_id: '4', first_name: 'Анна', last_name: 'Кузнецова', department: 'Клиент. сервис', points: 90, streak: 2 },
+      { employee_id: '5', first_name: 'Алексей', last_name: 'Смирнов', department: 'IT', points: 85, streak: 4 }
+    ];
+    
+    if (noBackend) return mockLeaderboard;
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/leaderboard`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch leaderboard');
+      }
+      return await response.json();
+    } catch (err) {
+      console.error('Error fetching leaderboard:', err);
+      return mockLeaderboard;
     }
   }
 }

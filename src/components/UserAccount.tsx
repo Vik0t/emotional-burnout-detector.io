@@ -18,7 +18,8 @@ import {
   BarChart3,
   Clock,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Award
 } from 'lucide-react';
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
@@ -43,9 +44,10 @@ interface UserAccountProps {
   onStartTest: () => void;
   onOpenChat: () => void;
   onViewTestResult: (result: TestResult) => void;
+  onViewBadges: () => void;
 }
 
-export function UserAccount({ employeeId, onLogout, onStartTest, onOpenChat, onViewTestResult }: UserAccountProps) {
+export function UserAccount({ employeeId, onLogout, onStartTest, onOpenChat, onViewTestResult, onViewBadges }: UserAccountProps) {
   const [testResults, setTestResults] = useState<TestResult[]>([]);
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -316,6 +318,29 @@ export function UserAccount({ employeeId, onLogout, onStartTest, onOpenChat, onV
                     </div>
                   </Button>
                 </div>
+              </div>
+            </Card>
+            
+            {/* Badges Button */}
+            <Card className="mb-6">
+              <div className="p-4 sm:p-6">
+                <Button
+                  onClick={onViewBadges}
+                  className="w-full"
+                  style={{
+                    backgroundColor: '#8B5CF6',
+                    borderColor: '#8B5CF6',
+                    padding: '0.75rem 1rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <div className="flex items-center gap-2">
+                    <Award size={20} />
+                    <span>ПОСМОТРЕТЬ ВАШИ ЗНАЧКИ</span>
+                  </div>
+                </Button>
               </div>
             </Card>
 

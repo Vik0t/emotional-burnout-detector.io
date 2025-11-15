@@ -18,6 +18,30 @@ const migrations = [
         resolve();
       });
     })
+  },
+  {
+    id: 3,
+    name: 'add_gamification_columns_to_users',
+    up: (db) => new Promise((resolve, reject) => {
+      db.serialize(() => {
+        db.run('ALTER TABLE users ADD COLUMN points INTEGER DEFAULT 0', (err) => {
+          if (err) return reject(err);
+        });
+        
+        db.run('ALTER TABLE users ADD COLUMN streak INTEGER DEFAULT 0', (err) => {
+          if (err) return reject(err);
+        });
+        
+        db.run('ALTER TABLE users ADD COLUMN last_streak_date TEXT', (err) => {
+          if (err) return reject(err);
+        });
+        
+        db.run('ALTER TABLE users ADD COLUMN badges TEXT DEFAULT "[]"', (err) => {
+          if (err) return reject(err);
+          resolve();
+        });
+      });
+    })
   }
 ];
 

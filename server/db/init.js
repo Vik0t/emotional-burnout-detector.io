@@ -112,6 +112,28 @@ function initializeDatabase(db) {
         { employee_id: '5', first_name: 'Анна', last_name: 'Кузнецова', department: 'Клиент. сервис' }
       ];
       
+      // Add sample gamification data after users are created
+      setTimeout(() => {
+        const gamificationData = [
+          { employee_id: '1', points: 150, streak: 7, badges: '["test_taker", "improvement_champion", "7_day_streak"]' },
+          { employee_id: '3', points: 120, streak: 5, badges: '["test_taker"]' },
+          { employee_id: '4', points: 100, streak: 3, badges: '["test_taker"]' },
+          { employee_id: '5', points: 90, streak: 2, badges: '["test_taker"]' }
+        ];
+        
+        gamificationData.forEach(data => {
+          db.run(`
+            UPDATE users
+            SET points = ?, streak = ?, badges = ?
+            WHERE employee_id = ?
+          `, [data.points, data.streak, data.badges, data.employee_id], (err) => {
+            if (err) {
+              console.error('Error updating gamification data:', err.message);
+            }
+          });
+        });
+      }, 1000);
+      
       let completed = 0;
       sampleUsers.forEach(user => {
         db.run(`

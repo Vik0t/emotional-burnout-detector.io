@@ -17,7 +17,11 @@ const {
   findOrCreateUser,
   getUserByEmployeeId,
   updateUserTestInfo,
-  verifyUserPassword
+  verifyUserPassword,
+  getUserGamificationData,
+  updateUserPoints,
+  updateUserStreak,
+  addUserBadge
 } = require('./repositories/usersRepository');
 
 const {
@@ -449,19 +453,26 @@ app.post('/api/test-results', (req, res) => {
         return res.status(500).json({ error: 'Failed to save test results' });
       }
 
-      // Обновляем у пользователя дату последнего теста
-      updateUserTestInfo(
-        db,
-        employeeId,
-        { last_test_date: new Date().toISOString() },
-        (updateErr) => {
-          if (updateErr) {
-            console.error('Error updating last_test_date:', updateErr);
-          }
-
-          res.json({ success: true, id });
+      // Handle gamification logic
+      handleGamification(db, employeeId, totalScore, (gamificationErr) => {
+        if (gamificationErr) {
+          console.error('Error handling gamification:', gamificationErr);
         }
-      );
+
+        // Обновляем у пользователя дату последнего теста
+        updateUserTestInfo(
+          db,
+          employeeId,
+          { last_test_date: new Date().toISOString() },
+          (updateErr) => {
+            if (updateErr) {
+              console.error('Error updating last_test_date:', updateErr);
+            }
+
+            res.json({ success: true, id });
+          }
+        );
+      });
     }
   );
 });
@@ -1059,5 +1070,180 @@ process.on('SIGINT', () => {
       console.error('Error closing database:', err.message);
     }
     process.exit(0);
+  });
+});
+
+// Gamification handler function
+function handleGamification(db, employeeId, totalScore, callback) {
+  // Award points for completing the test
+  const testCompletionPoints = 10;
+  
+  // Award bonus points for improvement
+  let improvementPoints = 0;
+  
+  // Get previous test score to check for improvement
+  getLatestTestResults(db, employeeId, (err, previousResult) => {
+    if (err) {
+      console.error('Error getting previous test result:', err);
+      // Continue with just completion points
+      updateUserPoints(db, employeeId, testCompletionPoints, (updateErr) => {
+        if (updateErr) console.error('Error updating points:', updateErr);
+        callback(updateErr);
+      });
+      return;
+    }
+    
+    // Check for improvement
+    if (previousResult && previousResult.total_score > totalScore) {
+      // Improvement bonus (more points for greater improvement)
+      const improvement = previousResult.total_score - totalScore;
+      improvementPoints = Math.min(Math.floor(improvement / 5), 20); // Max 20 points for improvement
+    }
+    
+    // Award points
+    const totalPoints = testCompletionPoints + improvementPoints;
+    updateUserPoints(db, employeeId, totalPoints, (updateErr) => {
+      if (updateErr) {
+        console.error('Error updating points:', updateErr);
+        return callback(updateErr);
+      }
+      
+      // Check for streak
+      checkAndUpdateStreak(db, employeeId, (streakErr) => {
+        if (streakErr) console.error('Error updating streak:', streakErr);
+        
+        // Check for badges
+        checkAndAwardBadges(db, employeeId, totalScore, (badgeErr) => {
+          if (badgeErr) console.error('Error checking badges:', badgeErr);
+          callback(null);
+        });
+      });
+    });
+  });
+}
+
+// Function to check and update streak
+function checkAndUpdateStreak(db, employeeId, callback) {
+  getUserGamificationData(db, employeeId, (err, gamificationData) => {
+    if (err) return callback(err);
+    
+    const today = new Date().toISOString().split('T')[0];
+    let newStreak = 1;
+    
+    if (gamificationData && gamificationData.last_streak_date) {
+      const lastStreakDate = gamificationData.last_streak_date;
+      const lastStreak = new Date(lastStreakDate);
+      const todayDate = new Date(today);
+      const diffTime = Math.abs(todayDate - lastStreak);
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      // If they took a test yesterday or today, continue streak
+      if (diffDays <= 1) {
+        newStreak = (gamificationData.streak || 0) + 1;
+      }
+      // If they took a test today and already have a streak, keep it
+      else if (diffDays === 0 && gamificationData.streak > 0) {
+        newStreak = gamificationData.streak;
+      }
+      // Otherwise, reset streak
+      else {
+        newStreak = 1;
+      }
+    }
+    
+    updateUserStreak(db, employeeId, newStreak, today, (updateErr) => {
+      if (updateErr) return callback(updateErr);
+      
+      // Award streak badge if applicable
+      if (newStreak >= 7) {
+        addUserBadge(db, employeeId, '7_day_streak', (badgeErr) => {
+          if (badgeErr) console.error('Error adding streak badge:', badgeErr);
+          callback(null);
+        });
+      } else {
+        callback(null);
+      }
+    });
+  });
+}
+
+// Function to check and award badges
+function checkAndAwardBadges(db, employeeId, totalScore, callback) {
+  const badgesToCheck = [];
+  
+  // Low score badge
+  if (totalScore <= 30) {
+    badgesToCheck.push('low_burnout_champion');
+  }
+  
+  // Improvement badge
+  getTestHistory(db, employeeId, (err, history) => {
+    if (err) return callback(err);
+    
+    if (history && history.length >= 2) {
+      const latest = history[0];
+      const previous = history[1];
+      if (previous.total_score > latest.total_score) {
+        badgesToCheck.push('improvement_champion');
+      }
+    }
+    
+    // Award all applicable badges
+    let badgeIndex = 0;
+    function awardBadges() {
+      if (badgeIndex >= badgesToCheck.length) {
+        return callback(null);
+      }
+      
+      addUserBadge(db, employeeId, badgesToCheck[badgeIndex], (err) => {
+        if (err) console.error('Error adding badge:', err);
+        badgeIndex++;
+        awardBadges();
+      });
+    }
+    
+    awardBadges();
+  });
+}
+
+// Function to get user gamification data endpoint
+app.get('/api/users/:employeeId/gamification', (req, res) => {
+  const { employeeId } = req.params;
+  
+  getUserGamificationData(db, employeeId, (err, data) => {
+    if (err) {
+      console.error('Error getting gamification data:', err);
+      return res.status(500).json({ error: 'Database error' });
+    }
+    
+    if (!data) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    res.json(data);
+  });
+});
+
+// Function to get leaderboard
+app.get('/api/leaderboard', (req, res) => {
+  db.all(`
+    SELECT
+      u.employee_id,
+      u.first_name,
+      u.last_name,
+      u.department,
+      u.points,
+      u.streak
+    FROM users u
+    WHERE u.points > 0
+    ORDER BY u.points DESC
+    LIMIT 10
+  `, [], (err, rows) => {
+    if (err) {
+      console.error('Error getting leaderboard:', err);
+      return res.status(500).json({ error: 'Database error' });
+    }
+    
+    res.json(rows);
   });
 });
