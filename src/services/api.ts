@@ -178,6 +178,16 @@ class ApiService {
 
     return await response.json();
   }
+
+  async getDepartmentStats(): Promise<DepartmentStats[]> {
+    const response = await fetch(`${API_BASE_URL}/hr/departments`);
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch department stats');
+    }
+
+    return await response.json();
+  }
 }
 
 export const apiService = new ApiService();
