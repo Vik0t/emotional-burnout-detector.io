@@ -495,14 +495,14 @@ app.get('/api/test-results/:employeeId/history', (req, res) => {
  *       500:
  *         description: Ошибка базы данных
  */
-app.post('/api/chatbot/response', (req, res) => {
+app.post('/api/chatbot/response', async (req, res) => {
   const { employeeId, message } = req.body;
 
   if (!employeeId || !message) {
     return res.status(400).json({ error: 'employeeId and message are required' });
   }
 
-  getLatestTestResults(db, employeeId, (err, testResult) => {
+  getLatestTestResults(db, employeeId, async (err, testResult) => {
     if (err) {
       console.error('Error getLatestTestResults for chatbot:', err);
       return res.status(500).json({ error: 'Database error' });
@@ -517,16 +517,21 @@ app.post('/api/chatbot/response', (req, res) => {
       testResult.answers = [];
     }
 
-    const responseText = generateChatbotResponse(testResult, message);
+    try {
+      const responseText = await generateChatbotResponse(testResult, message);
 
-    saveChatMessage(db, employeeId, message, responseText, (saveErr) => {
-      if (saveErr) {
-        console.error('Error saveChatMessage:', saveErr);
-        return res.status(500).json({ error: 'Failed to save chat message' });
-      }
+      saveChatMessage(db, employeeId, message, responseText, (saveErr) => {
+        if (saveErr) {
+          console.error('Error saveChatMessage:', saveErr);
+          return res.status(500).json({ error: 'Failed to save chat message' });
+        }
 
-      res.json({ response: responseText });
-    });
+        res.json({ response: responseText });
+      });
+    } catch (error) {
+      console.error('Error generating chatbot response:', error);
+      return res.status(500).json({ error: 'Failed to generate response' });
+    }
   });
 });
 
