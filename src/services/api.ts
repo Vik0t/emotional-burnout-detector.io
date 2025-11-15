@@ -106,7 +106,7 @@ class ApiService {
   }
 
   async getLatestTestResults(employeeId: string): Promise<TestResults> {
-    const response = await fetch(`${API_BASE_URL}/test-results/${employeeId}`);
+    const response = await fetch(`${API_BASE_URL}/test-results/${employeeId}/latest`);
 
     if (!response.ok) {
       if (response.status === 404) {
@@ -161,7 +161,7 @@ class ApiService {
     }
 
     try {
-      const response = await fetch(`${API_BASE_URL}/test-results/history/${employeeId}`);
+      const response = await fetch(`${API_BASE_URL}/test-results/${employeeId}/history`);
       
       if (!response.ok) {
         if (response.status === 404) {
