@@ -10,6 +10,7 @@ interface ChatBotProps {
   testResults: TestResults;
   employeeId: string;
   onGoToDashboard: () => void;
+  onBackToAccount?: () => void;
 }
 
 interface Message {
@@ -18,7 +19,7 @@ interface Message {
   timestamp: string;
 }
 
-export function ChatBot({ testResults, employeeId, onGoToDashboard }: ChatBotProps) {
+export function ChatBot({ testResults, employeeId, onGoToDashboard, onBackToAccount }: ChatBotProps) {
   const [messages, setMessages] = useState([] as Message[]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -148,16 +149,30 @@ ${level === 'высокий'
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-3 sm:px-4 py-3 sm:py-4 flex-shrink-0">
         <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <Button
-            onClick={onGoToDashboard}
-            outlined
-            className="gap-2 text-sm sm:text-base order-2 sm:order-1 w-full sm:w-auto"
-            size="small"
-            icon={<ArrowLeft size={16} className="sm:w-5 sm:h-5" />}
-          >
-            <span className="hidden sm:inline">Вернуться в дашборд</span>
-            <span className="sm:hidden">Назад</span>
-          </Button>
+          <div className="flex gap-2 order-2 sm:order-1 w-full sm:w-auto">
+            {onBackToAccount && (
+              <Button
+                onClick={onBackToAccount}
+                outlined
+                className="gap-2 text-sm sm:text-base flex-1 sm:flex-none"
+                size="small"
+                icon={<ArrowLeft size={16} className="sm:w-5 sm:h-5" />}
+              >
+                <span className="hidden sm:inline">В личный кабинет</span>
+                <span className="sm:hidden">Кабинет</span>
+              </Button>
+            )}
+            <Button
+              onClick={onGoToDashboard}
+              outlined
+              className="gap-2 text-sm sm:text-base flex-1 sm:flex-none"
+              size="small"
+              icon={<ArrowLeft size={16} className="sm:w-5 sm:h-5" />}
+            >
+              <span className="hidden sm:inline">Вернуться в дашборд</span>
+              <span className="sm:hidden">Дашборд</span>
+            </Button>
+          </div>
           <div className="flex items-center gap-2 sm:gap-3 order-1 sm:order-2 w-full sm:w-auto justify-between sm:justify-start">
             <img src={cdekLogo} alt="CDEK" className="h-5 sm:h-6" />
             <div className="flex-1 sm:flex-none">

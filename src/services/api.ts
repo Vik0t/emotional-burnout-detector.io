@@ -125,6 +125,67 @@ class ApiService {
     };
   }
 
+  async getTestHistory(employeeId: string): Promise<Array<TestResults & { date: string }>> {
+    const noBackend = (import.meta as any).env?.VITE_NO_BACKEND === 'true';
+    
+    // Mock data for development
+    const mockHistory = [
+      {
+        date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days ago
+        emotionalExhaustion: 18,
+        depersonalization: 12,
+        personalAccomplishment: 22,
+        totalScore: 52,
+        answers: []
+      },
+      {
+        date: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(), // 14 days ago
+        emotionalExhaustion: 15,
+        depersonalization: 10,
+        personalAccomplishment: 24,
+        totalScore: 49,
+        answers: []
+      },
+      {
+        date: new Date().toISOString(), // today
+        emotionalExhaustion: 12,
+        depersonalization: 8,
+        personalAccomplishment: 26,
+        totalScore: 46,
+        answers: []
+      }
+    ];
+
+    if (noBackend) {
+      return mockHistory;
+    }
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/test-results/history/${employeeId}`);
+      
+      if (!response.ok) {
+        if (response.status === 404) {
+          return [];
+        }
+        // Fallback to mock on error
+        return mockHistory;
+      }
+
+      const data = await response.json();
+      return data.map((item: any) => ({
+        date: item.created_at || item.date,
+        emotionalExhaustion: item.emotional_exhaustion,
+        depersonalization: item.depersonalization,
+        personalAccomplishment: item.personal_accomplishment,
+        totalScore: item.total_score,
+        answers: item.answers || []
+      }));
+    } catch (err) {
+      // Network error, return mock for local dev
+      return mockHistory;
+    }
+  }
+
   // Chat messages
   async saveChatMessage(employeeId: string, message: string, response: string): Promise<void> {
     const responseObj = await fetch(`${API_BASE_URL}/chat-messages`, {

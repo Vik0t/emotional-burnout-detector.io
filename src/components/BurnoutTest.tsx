@@ -10,6 +10,7 @@ interface BurnoutTestProps {
   onComplete: (results: TestResults) => void;
   employeeId: string;
   onLogout: () => void;
+  onBackToAccount?: () => void;
 }
 
 export interface TestResults {
@@ -52,7 +53,7 @@ const options = [
   { value: '6', label: 'Всегда' },
 ];
 
-export function BurnoutTest({ onComplete, employeeId, onLogout }: BurnoutTestProps) {
+export function BurnoutTest({ onComplete, employeeId, onLogout, onBackToAccount }: BurnoutTestProps) {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState(new Array(questions.length).fill(-1) as number[]);
 
@@ -138,13 +139,24 @@ export function BurnoutTest({ onComplete, employeeId, onLogout }: BurnoutTestPro
             <img src={cdekLogo} alt="CDEK" className="h-5 sm:h-6" />
             <span className="text-gray-600 text-sm sm:text-base">Диагностика выгорания</span>
           </div>
-          <Button 
-            onClick={onLogout} 
-            label="ВЫХОД"
-            outlined
-            size="small"
-            className="text-xs sm:text-sm"
-          />
+          <div className="flex gap-2">
+            {onBackToAccount && (
+              <Button 
+                onClick={onBackToAccount} 
+                label="НАЗАД"
+                outlined
+                size="small"
+                className="text-xs sm:text-sm"
+              />
+            )}
+            <Button 
+              onClick={onLogout} 
+              label="ВЫХОД"
+              outlined
+              size="small"
+              className="text-xs sm:text-sm"
+            />
+          </div>
         </div>
 
         {/* Question Card */}

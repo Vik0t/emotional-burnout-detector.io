@@ -37,9 +37,10 @@ interface DashboardProps {
   onBackToChat: () => void;
   onRetakeTest: () => void;
   onLogout: () => void;
+  onBackToAccount?: () => void;
 }
 
-export function Dashboard({ testResults, employeeId, onBackToChat, onRetakeTest, onLogout }: DashboardProps) {
+export function Dashboard({ testResults, employeeId, onBackToChat, onRetakeTest, onLogout, onBackToAccount }: DashboardProps) {
   const [latestTestResults, setLatestTestResults] = useState(testResults);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -195,6 +196,15 @@ export function Dashboard({ testResults, employeeId, onBackToChat, onRetakeTest,
               </div>
             </div>
             <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
+              {onBackToAccount && (
+                <Button 
+                  onClick={onBackToAccount} 
+                  label="Назад в кабинет"
+                  outlined
+                  size="small"
+                  className="flex-1 sm:flex-none text-xs sm:text-sm"
+                />
+              )}
               <Button 
                 onClick={onRetakeTest} 
                 label="Пройти тест заново"

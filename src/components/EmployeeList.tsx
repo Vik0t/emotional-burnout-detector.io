@@ -15,6 +15,7 @@ import { Shield } from 'lucide-react';
 
 interface EmployeeListProps {
   onBack: () => void;
+  onViewEmployee: (employeeId: string, department: string) => void;
 }
 
 interface Employee {
@@ -26,7 +27,7 @@ interface Employee {
   status: string;
 }
 
-export function EmployeeList({ onBack }: EmployeeListProps) {
+export function EmployeeList({ onBack, onViewEmployee }: EmployeeListProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterRisk, setFilterRisk] = useState<string>('all');
   const [filterDepartment, setFilterDepartment] = useState<string>('all');
@@ -169,7 +170,8 @@ export function EmployeeList({ onBack }: EmployeeListProps) {
           globalFilter={searchQuery}
           sortMode="multiple"
           removableSort
-          className="bg-white rounded-lg shadow border border-gray-200"
+          onRowClick={(e) => onViewEmployee(e.data.id, e.data.department)}
+          className="bg-white rounded-lg shadow border border-gray-200 cursor-pointer"
           header={
               <div className="flex flex-col md:flex-row gap-4 p-4">
                 <IconField iconPosition="left" className="w-full md:flex-1">
