@@ -36,10 +36,9 @@ export interface RiskDistribution {
 }
 
 export interface DepartmentStats {
-  name: string;
-  avg_score: number;
-  at_risk: number;
-  employees: number;
+  department: string;
+  average_score: number;
+  employees_count: number;
 }
 
 class ApiService {

@@ -113,7 +113,7 @@ export function AdminDashboard({ onLogout, onShowEmployeeList }: AdminDashboardP
     },
   ]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   // Fetch dashboard data
   useEffect(() => {
@@ -125,13 +125,14 @@ export function AdminDashboard({ onLogout, onShowEmployeeList }: AdminDashboardP
         const stats = await apiService.getHRStatistics();
         setTotalEmployees(stats.total_employees);
         setTestedEmployees(stats.recent_tests);
-        setTestCoverage(Math.round((stats.recent_tests / stats.total_employees) * 100));
+        setTestCoverage(stats.total_employees > 0 ? Math.round((stats.recent_tests / stats.total_employees) * 100) : 0);
         
         // Update risk distribution
+        const totalWithRisk = stats.high_risk_count + stats.medium_risk_count + stats.low_risk_count;
         const newRiskDistribution = [
-          { level: 'Низкий', count: stats.low_risk_count, percentage: Math.round((stats.low_risk_count / stats.total_employees) * 100), color: '#00B33C' },
-          { level: 'Средний', count: stats.medium_risk_count, percentage: Math.round((stats.medium_risk_count / stats.total_employees) * 100), color: '#F59E0B' },
-          { level: 'Высокий', count: stats.high_risk_count, percentage: Math.round((stats.high_risk_count / stats.total_employees) * 100), color: '#EF4444' },
+          { level: 'Низкий', count: stats.low_risk_count, percentage: totalWithRisk > 0 ? Math.round((stats.low_risk_count / totalWithRisk) * 100) : 0, color: '#00B33C' },
+          { level: 'Средний', count: stats.medium_risk_count, percentage: totalWithRisk > 0 ? Math.round((stats.medium_risk_count / totalWithRisk) * 100) : 0, color: '#F59E0B' },
+          { level: 'Высокий', count: stats.high_risk_count, percentage: totalWithRisk > 0 ? Math.round((stats.high_risk_count / totalWithRisk) * 100) : 0, color: '#EF4444' },
         ];
         setRiskDistribution(newRiskDistribution);
         
@@ -145,15 +146,69 @@ export function AdminDashboard({ onLogout, onShowEmployeeList }: AdminDashboardP
         // Fetch employee stats for department data
         const employeeStats = await apiService.getEmployeeStats();
         
-        // Group by department (mocked for now)
-        const newDepartmentData = [
-          { name: 'Логистика', avgScore: 45, riskLevel: 'Средний', employees: 89, atRisk: 28 },
-          { name: 'Курьеры', avgScore: 62, riskLevel: 'Высокий', employees: 156, atRisk: 52 },
-          { name: 'Клиент. сервис', avgScore: 51, riskLevel: 'Средний', employees: 67, atRisk: 21 },
-          { name: 'IT', avgScore: 38, riskLevel: 'Низкий', employees: 45, atRisk: 8 },
-          { name: 'Управление', avgScore: 42, riskLevel: 'Средний', employees: 34, atRisk: 12 },
-        ];
+        // Fetch department data
+        const departmentStats = await apiService.getDepartmentStats();
+        
+        // Transform department data
+        // Transform department data to match frontend interface
+        const newDepartmentData = departmentStats.map(dept => ({
+          name: (dept.department || 'Неизвестно'),
+          avgScore: Math.round(dept.average_score || 0),
+          riskLevel: (dept.average_score || 0) > 50 ? 'Высокий' : (dept.average_score || 0) > 30 ? 'Средний' : 'Низкий',
+          employees: (dept.employees_count || 0),
+          atRisk: Math.round((dept.employees_count || 0) * (((dept.average_score || 0) > 50 ? 0.3 : (dept.average_score || 0) > 30 ? 0.15 : 0.05))) // Calculate based on risk level
+        }));
         setDepartmentData(newDepartmentData);
+        
+        // Update trend data (mocked for now - in a real app, this would come from the API)
+        const newTrendData = [
+          { month: 'Май', avgScore: 42, atRisk: 18 },
+          { month: 'Июнь', avgScore: 45, atRisk: 22 },
+          { month: 'Июль', avgScore: 48, atRisk: 25 },
+          { month: 'Авг', avgScore: 46, atRisk: 23 },
+          { month: 'Сен', avgScore: 49, atRisk: 27 },
+          { month: 'Окт', avgScore: 47, atRisk: 24 },
+        ];
+        setTrendData(newTrendData);
+        
+        // Update radar data (mocked for now - in a real app, this would come from the API)
+        const newRadarData = [
+          { metric: 'Эмоц. истощение', value: 65, fullMark: 100 },
+          { metric: 'Деперсонализация', value: 45, fullMark: 100 },
+          { metric: 'Личные достиж.', value: 35, fullMark: 100 },
+          { metric: 'Рабочая нагрузка', value: 70, fullMark: 100 },
+          { metric: 'Work-life баланс', value: 30, fullMark: 100 },
+        ];
+        setRadarData(newRadarData);
+        
+        // Update business metrics (mocked for now - in a real app, this would come from the API)
+        const newBusinessMetrics = [
+          {
+            title: 'Прогнозируемая текучесть',
+            value: '24%',
+            trend: -12,
+            description: 'по сравнению с прошлым кварталом',
+            icon: Users,
+            color: '#EF4444'
+          },
+          {
+            title: 'Потенциальная экономия',
+            value: '₽2.4М',
+            trend: 15,
+            description: 'за счет снижения текучести',
+            icon: Target,
+            color: '#00B33C'
+          },
+          {
+            title: 'Индекс продуктивности',
+            value: '68/100',
+            trend: 8,
+            description: 'улучшение за квартал',
+            icon: Zap,
+            color: '#00B33C'
+          },
+        ];
+        setBusinessMetrics(newBusinessMetrics);
         
         setLoading(false);
       } catch (err) {
