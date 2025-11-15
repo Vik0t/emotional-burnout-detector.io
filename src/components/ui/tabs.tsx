@@ -1,65 +1,71 @@
 "use client";
 
 import * as React from "react";
-import * as TabsPrimitive from "@radix-ui/react-tabs@1.1.3";
 
 import { cn } from "./utils";
 
-function Tabs({
-  className,
-  ...props
-}: React.ComponentProps<typeof TabsPrimitive.Root>) {
+type TabsProps = {
+  value?: string;
+  defaultValue?: string;
+  onValueChange?: (value: string) => void;
+  children?: React.ReactNode;
+  className?: string;
+};
+
+function Tabs({ value, defaultValue, onValueChange, children, className }: TabsProps) {
+  const [internal, setInternal] = React.useState(defaultValue || "");
+  const active = value ?? internal;
+  const setActive = (v: string) => {
+    if (value === undefined) setInternal(v);
+    onValueChange?.(v);
+  };
+
   return (
-    <TabsPrimitive.Root
-      data-slot="tabs"
-      className={cn("flex flex-col gap-2", className)}
-      {...props}
-    />
+    <div data-slot="tabs" className={cn("p-tabview flex flex-col gap-2", className)}>
+      {React.Children.map(children, (child) => {
+        if (!React.isValidElement(child)) return null;
+        return React.cloneElement(child as React.ReactElement<any>, { activeValue: active, setActive });
+      })}
+    </div>
   );
 }
 
-function TabsList({
-  className,
-  ...props
-}: React.ComponentProps<typeof TabsPrimitive.List>) {
+function TabsList({ children, className, activeValue, setActive }: any) {
   return (
-    <TabsPrimitive.List
-      data-slot="tabs-list"
-      className={cn(
-        "bg-muted text-muted-foreground inline-flex h-9 w-fit items-center justify-center rounded-xl p-[3px] flex",
-        className,
-      )}
-      {...props}
-    />
+    <div data-slot="tabs-list" role="tablist" className={cn("p-tabview-nav bg-muted text-muted-foreground inline-flex h-9 w-fit items-center justify-center rounded-xl p-[3px] flex", className)}>
+      {React.Children.map(children, (child) => {
+        if (!React.isValidElement(child)) return null;
+        return React.cloneElement(child as React.ReactElement<any>, { activeValue, setActive });
+      })}
+    </div>
   );
 }
 
-function TabsTrigger({
-  className,
-  ...props
-}: React.ComponentProps<typeof TabsPrimitive.Trigger>) {
+function TabsTrigger({ value, className, children, activeValue, setActive, ...props }: any) {
+  const active = activeValue === value;
   return (
-    <TabsPrimitive.Trigger
+    <button
+      role="tab"
+      aria-selected={active}
       data-slot="tabs-trigger"
       className={cn(
-        "data-[state=active]:bg-card dark:data-[state=active]:text-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-ring dark:data-[state=active]:border-input dark:data-[state=active]:bg-input/30 text-foreground dark:text-muted-foreground inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 rounded-xl border border-transparent px-2 py-1 text-sm font-medium whitespace-nowrap transition-[color,box-shadow] focus-visible:ring-[3px] focus-visible:outline-1 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "p-tabview-navitem data-[active=true]:bg-card text-foreground inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 rounded-xl border border-transparent px-2 py-1 text-sm font-medium whitespace-nowrap transition-[color,box-shadow] focus-visible:ring-[3px] focus-visible:outline-1 disabled:pointer-events-none disabled:opacity-50",
         className,
       )}
+      onClick={() => setActive?.(value)}
       {...props}
-    />
+    >
+      {children}
+    </button>
   );
 }
 
-function TabsContent({
-  className,
-  ...props
-}: React.ComponentProps<typeof TabsPrimitive.Content>) {
+function TabsContent({ value, className, children, activeValue }: any) {
+  if (value !== activeValue) return null;
   return (
-    <TabsPrimitive.Content
-      data-slot="tabs-content"
-      className={cn("flex-1 outline-none", className)}
-      {...props}
-    />
+    <div data-slot="tabs-content" role="tabpanel" className={cn("p-tabview-panel flex-1 outline-none", className)}>
+      {children}
+    </div>
   );
 }
 

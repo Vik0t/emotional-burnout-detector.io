@@ -1,58 +1,54 @@
 import * as React from "react";
-import { Slot } from "@radix-ui/react-slot@1.1.2";
-import { cva, type VariantProps } from "class-variance-authority@0.7.1";
-
 import { cn } from "./utils";
 
-const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
-  {
-    variants: {
-      variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90",
-        destructive:
-          "bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60",
-        outline:
-          "border bg-background text-foreground hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50",
-        secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        ghost:
-          "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
-        link: "text-primary underline-offset-4 hover:underline",
-      },
-      size: {
-        default: "h-9 px-4 py-2 has-[>svg]:px-3",
-        sm: "h-8 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5",
-        lg: "h-10 rounded-md px-6 has-[>svg]:px-4",
-        icon: "size-9 rounded-md",
-      },
-    },
-    defaultVariants: {
-      variant: "default",
-      size: "default",
-    },
-  },
-);
+type Variant = "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
+type Size = "default" | "sm" | "lg" | "icon";
 
-function Button({
-  className,
-  variant,
-  size,
-  asChild = false,
-  ...props
-}: React.ComponentProps<"button"> &
-  VariantProps<typeof buttonVariants> & {
-    asChild?: boolean;
-  }) {
-  const Comp = asChild ? Slot : "button";
+function variantToClasses(v?: Variant) {
+  switch (v) {
+    case "destructive":
+      return "p-button p-button-danger";
+    case "outline":
+      return "p-button p-button-outlined";
+    case "secondary":
+      return "p-button p-button-info";
+    case "ghost":
+      return "p-button p-button-text";
+    case "link":
+      return "p-link";
+    default:
+      return "p-button";
+  }
+}
+
+function sizeToClasses(s?: Size) {
+  switch (s) {
+    case "sm":
+      return "p-button-sm";
+    case "lg":
+      return "p-button-lg";
+    case "icon":
+      return "p-button-icon-only";
+    default:
+      return "";
+  }
+}
+
+import { renderWithAsChild } from "./utils";
+
+function Button({ className, variant = "default", size = "default", asChild = false, children, ...props }: React.ComponentProps<"button"> & { variant?: Variant; size?: Size; asChild?: boolean; children?: React.ReactNode }) {
+  // Build kit classes and merge with existing className
+  const kitClasses = variantToClasses(variant) + (sizeToClasses(size) ? ` ${sizeToClasses(size)}` : "");
+
+  // Ensure label wrapper exists so kit CSS applies to the text part and our overrides target it
 
   return (
-    <Comp
-      data-slot="button"
-      className={cn(buttonVariants({ variant, size, className }))}
-      {...props}
-    />
+    <>{renderWithAsChild(asChild, <span className="p-button-label">{children}</span>, "button", { "data-slot": "button", className: cn(kitClasses, className), ...props })}</>
   );
+}
+
+function buttonVariants({ variant = "default", size = "default" }: { variant?: Variant; size?: Size } = { variant: "default", size: "default" }) {
+  return variantToClasses(variant) + (sizeToClasses(size) ? ` ${sizeToClasses(size)}` : "");
 }
 
 export { Button, buttonVariants };

@@ -1,32 +1,44 @@
 "use client";
 
-import * as CollapsiblePrimitive from "@radix-ui/react-collapsible@1.1.3";
+import * as React from "react";
 
-function Collapsible({
-  ...props
-}: React.ComponentProps<typeof CollapsiblePrimitive.Root>) {
-  return <CollapsiblePrimitive.Root data-slot="collapsible" {...props} />;
-}
+type CollapsibleContextValue = {
+  open: boolean;
+  toggle: () => void;
+};
 
-function CollapsibleTrigger({
-  ...props
-}: React.ComponentProps<typeof CollapsiblePrimitive.CollapsibleTrigger>) {
+const CollapsibleContext = React.createContext<CollapsibleContextValue | null>(null);
+
+function Collapsible({ children, defaultOpen = false }: { children?: React.ReactNode; defaultOpen?: boolean }) {
+  const [open, setOpen] = React.useState(!!defaultOpen);
+  const toggle = React.useCallback(() => setOpen((o) => !o), []);
+
   return (
-    <CollapsiblePrimitive.CollapsibleTrigger
-      data-slot="collapsible-trigger"
-      {...props}
-    />
+    <CollapsibleContext.Provider value={{ open, toggle }}>
+      <div data-slot="collapsible" data-open={open}>{children}</div>
+    </CollapsibleContext.Provider>
   );
 }
 
-function CollapsibleContent({
-  ...props
-}: React.ComponentProps<typeof CollapsiblePrimitive.CollapsibleContent>) {
+function CollapsibleTrigger({ children, ...props }: any) {
+  const ctx = React.useContext(CollapsibleContext);
+  if (!ctx) return null;
+  const child = React.Children.only(children) as React.ReactElement<any>;
+  const handleClick = (e: any) => {
+    ctx.toggle();
+    child.props?.onClick?.(e);
+  };
+  return React.cloneElement(child, { onClick: handleClick, ...props });
+}
+
+function CollapsibleContent({ children, className, ...props }: any) {
+  const ctx = React.useContext(CollapsibleContext);
+  if (!ctx) return null;
+  if (!ctx.open) return null;
   return (
-    <CollapsiblePrimitive.CollapsibleContent
-      data-slot="collapsible-content"
-      {...props}
-    />
+    <div data-slot="collapsible-content" className={className} {...props}>
+      {children}
+    </div>
   );
 }
 

@@ -1,11 +1,15 @@
 "use client";
 
-import * as AspectRatioPrimitive from "@radix-ui/react-aspect-ratio@1.1.2";
+import * as React from "react";
+import { cn } from "./utils";
 
-function AspectRatio({
-  ...props
-}: React.ComponentProps<typeof AspectRatioPrimitive.Root>) {
-  return <AspectRatioPrimitive.Root data-slot="aspect-ratio" {...props} />;
+function AspectRatio({ children, ratio = 16 / 9, className, style, ...props }: { ratio?: number; className?: string; children?: React.ReactNode; style?: React.CSSProperties } & React.ComponentProps<"div">) {
+  const aspectStyle: React.CSSProperties = { aspectRatio: String(ratio), ...style } as any;
+  return (
+    <div data-slot="aspect-ratio" className={cn("w-full", className)} style={aspectStyle} {...props}>
+      {children}
+    </div>
+  );
 }
 
 export { AspectRatio };

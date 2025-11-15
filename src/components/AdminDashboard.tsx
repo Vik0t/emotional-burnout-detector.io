@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { Button } from './ui/button';
-import { Card } from './ui/card';
-import { Badge } from './ui/badge';
+import { useState, useEffect } from 'react';
+import { Button } from 'primereact/button';
+import { Card } from 'primereact/card';
+import { Badge } from 'primereact/badge';
 import { apiService } from '../services/api';
+import cdekLogo from '../assets/cdek-logo.svg';
+import { ComputedStylesDebug } from './ui/ComputedStylesDebug';
 import {
   Users,
   TrendingUp,
@@ -47,17 +49,18 @@ interface AdminDashboardProps {
 }
 
 // Define COLORS constant
-const COLORS = ['#00B33C', '#F59E0B', '#EF4444'];
+const COLORS = ['#00B33C', '#FFA100', '#DB4C3F'];
 
 export function AdminDashboard({ onLogout, onShowEmployeeList }: AdminDashboardProps) {
+  const devNoBackend = (import.meta as any).env?.VITE_NO_BACKEND === 'true';
   // State for dashboard data
   const [totalEmployees, setTotalEmployees] = useState(0);
   const [testedEmployees, setTestedEmployees] = useState(0);
   const [testCoverage, setTestCoverage] = useState(0);
   const [riskDistribution, setRiskDistribution] = useState([
     { level: 'Низкий', count: 0, percentage: 0, color: '#00B33C' },
-    { level: 'Средний', count: 0, percentage: 0, color: '#F59E0B' },
-    { level: 'Высокий', count: 0, percentage: 0, color: '#EF4444' },
+    { level: 'Средний', count: 0, percentage: 0, color: '#FFA100' },
+    { level: 'Высокий', count: 0, percentage: 0, color: '#DB4C3F' },
   ]);
   const [pieData, setPieData] = useState([
     { name: 'Низкий риск', value: 0 },
@@ -109,7 +112,7 @@ export function AdminDashboard({ onLogout, onShowEmployeeList }: AdminDashboardP
       trend: 0,
       description: '',
       icon: Zap,
-      color: '#F59E0B'
+      color: '#FFA100'
     },
   ]);
   const [loading, setLoading] = useState(true);
@@ -125,14 +128,13 @@ export function AdminDashboard({ onLogout, onShowEmployeeList }: AdminDashboardP
         const stats = await apiService.getHRStatistics();
         setTotalEmployees(stats.total_employees);
         setTestedEmployees(stats.recent_tests);
-        setTestCoverage(stats.total_employees > 0 ? Math.round((stats.recent_tests / stats.total_employees) * 100) : 0);
+        setTestCoverage(Math.round((stats.recent_tests / stats.total_employees) * 100));
         
         // Update risk distribution
-        const totalWithRisk = stats.high_risk_count + stats.medium_risk_count + stats.low_risk_count;
         const newRiskDistribution = [
-          { level: 'Низкий', count: stats.low_risk_count, percentage: totalWithRisk > 0 ? Math.round((stats.low_risk_count / totalWithRisk) * 100) : 0, color: '#00B33C' },
-          { level: 'Средний', count: stats.medium_risk_count, percentage: totalWithRisk > 0 ? Math.round((stats.medium_risk_count / totalWithRisk) * 100) : 0, color: '#F59E0B' },
-          { level: 'Высокий', count: stats.high_risk_count, percentage: totalWithRisk > 0 ? Math.round((stats.high_risk_count / totalWithRisk) * 100) : 0, color: '#EF4444' },
+          { level: 'Низкий', count: stats.low_risk_count, percentage: Math.round((stats.low_risk_count / stats.total_employees) * 100), color: '#00B33C' },
+          { level: 'Средний', count: stats.medium_risk_count, percentage: Math.round((stats.medium_risk_count / stats.total_employees) * 100), color: '#FFA100' },
+          { level: 'Высокий', count: stats.high_risk_count, percentage: Math.round((stats.high_risk_count / stats.total_employees) * 100), color: '#DB4C3F' },
         ];
         setRiskDistribution(newRiskDistribution);
         
@@ -146,69 +148,15 @@ export function AdminDashboard({ onLogout, onShowEmployeeList }: AdminDashboardP
         // Fetch employee stats for department data
         const employeeStats = await apiService.getEmployeeStats();
         
-        // Fetch department data
-        const departmentStats = await apiService.getDepartmentStats();
-        
-        // Transform department data
-        // Transform department data to match frontend interface
-        const newDepartmentData = departmentStats.map(dept => ({
-          name: (dept.department || 'Неизвестно'),
-          avgScore: Math.round(dept.average_score || 0),
-          riskLevel: (dept.average_score || 0) > 50 ? 'Высокий' : (dept.average_score || 0) > 30 ? 'Средний' : 'Низкий',
-          employees: (dept.employees_count || 0),
-          atRisk: Math.round((dept.employees_count || 0) * (((dept.average_score || 0) > 50 ? 0.3 : (dept.average_score || 0) > 30 ? 0.15 : 0.05))) // Calculate based on risk level
-        }));
+        // Group by department (mocked for now)
+        const newDepartmentData = [
+          { name: 'Логистика', avgScore: 45, riskLevel: 'Средний', employees: 89, atRisk: 28 },
+          { name: 'Курьеры', avgScore: 62, riskLevel: 'Высокий', employees: 156, atRisk: 52 },
+          { name: 'Клиент. сервис', avgScore: 51, riskLevel: 'Средний', employees: 67, atRisk: 21 },
+          { name: 'IT', avgScore: 38, riskLevel: 'Низкий', employees: 45, atRisk: 8 },
+          { name: 'Управление', avgScore: 42, riskLevel: 'Средний', employees: 34, atRisk: 12 },
+        ];
         setDepartmentData(newDepartmentData);
-        
-        // Update trend data (mocked for now - in a real app, this would come from the API)
-        const newTrendData = [
-          { month: 'Май', avgScore: 42, atRisk: 18 },
-          { month: 'Июнь', avgScore: 45, atRisk: 22 },
-          { month: 'Июль', avgScore: 48, atRisk: 25 },
-          { month: 'Авг', avgScore: 46, atRisk: 23 },
-          { month: 'Сен', avgScore: 49, atRisk: 27 },
-          { month: 'Окт', avgScore: 47, atRisk: 24 },
-        ];
-        setTrendData(newTrendData);
-        
-        // Update radar data (mocked for now - in a real app, this would come from the API)
-        const newRadarData = [
-          { metric: 'Эмоц. истощение', value: 65, fullMark: 100 },
-          { metric: 'Деперсонализация', value: 45, fullMark: 100 },
-          { metric: 'Личные достиж.', value: 35, fullMark: 100 },
-          { metric: 'Рабочая нагрузка', value: 70, fullMark: 100 },
-          { metric: 'Work-life баланс', value: 30, fullMark: 100 },
-        ];
-        setRadarData(newRadarData);
-        
-        // Update business metrics (mocked for now - in a real app, this would come from the API)
-        const newBusinessMetrics = [
-          {
-            title: 'Прогнозируемая текучесть',
-            value: '24%',
-            trend: -12,
-            description: 'по сравнению с прошлым кварталом',
-            icon: Users,
-            color: '#EF4444'
-          },
-          {
-            title: 'Потенциальная экономия',
-            value: '₽2.4М',
-            trend: 15,
-            description: 'за счет снижения текучести',
-            icon: Target,
-            color: '#00B33C'
-          },
-          {
-            title: 'Индекс продуктивности',
-            value: '68/100',
-            trend: 8,
-            description: 'улучшение за квартал',
-            icon: Zap,
-            color: '#00B33C'
-          },
-        ];
-        setBusinessMetrics(newBusinessMetrics);
         
         setLoading(false);
       } catch (err) {
@@ -229,85 +177,93 @@ export function AdminDashboard({ onLogout, onShowEmployeeList }: AdminDashboardP
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div className="flex items-center gap-2 sm:gap-3">
-              <div className="bg-[#00B33C] text-white px-2 sm:px-3 py-1 rounded text-sm sm:text-base">
-                CDEK
-              </div>
+              <img src={cdekLogo} alt="CDEK" className="h-5 sm:h-6" />
               <div>
                 <div className="flex items-center gap-2">
                   <h1 className="text-gray-900 text-base sm:text-xl">Панель администратора</h1>
-                  <Badge variant="secondary" className="bg-purple-100 text-purple-700 text-xs sm:text-sm">
-                    <Shield size={10} className="mr-1" />
-                    HR
-                  </Badge>
+                  <Badge 
+                    value="HR" 
+                    severity="info"
+                    className="text-xs sm:text-sm"
+                  />
                 </div>
                 <p className="text-xs sm:text-sm text-gray-500 hidden sm:block">Агрегированная аналитика выгорания</p>
               </div>
             </div>
             <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
-              <Button className="bg-[#00B33C] hover:bg-[#009933] text-white gap-2 flex-1 sm:flex-none h-9 sm:h-10" onClick={onShowEmployeeList} size="sm">
-                <List size={16} />
-                <span className="hidden sm:inline">СПИСОК СОТРУДНИКОВ</span>
-                <span className="sm:hidden">СПИСОК</span>
-              </Button>
-              <Button onClick={onLogout} variant="outline" size="sm" className="h-9 sm:h-10">
-                ВЫХОД
-              </Button>
+              <Button 
+                onClick={onShowEmployeeList}
+                label="СПИСОК СОТРУДНИКОВ"
+                severity="success"
+                icon="pi pi-list"
+                size="small"
+                className="flex-1 sm:flex-none"
+              />
+              <Button 
+                onClick={onLogout}
+                label="ВЫХОД"
+                outlined
+                size="small"
+              />
             </div>
           </div>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-8">
+        {devNoBackend && (
+          <ComputedStylesDebug selectors={[ '.p-button', '.p-card', '.p-inputtext', '.p-badge', '.p-avatar' ]} />
+        )}
         {/* Key Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <Card className="p-6 bg-gradient-to-br from-blue-50 to-white border-blue-200">
+          <Card className="p-4 border-blue-200" style={{ background: 'linear-gradient(to bottom right, #dbeafe, #ffffff)' }}>
             <div className="flex items-start justify-between mb-3">
               <div>
                 <p className="text-gray-600 mb-1">Всего сотрудников</p>
                 <h2 className="text-gray-900">{totalEmployees}</h2>
               </div>
-              <Users className="text-blue-600" size={28} />
+              <Users style={{ color: '#1F8CEB' }} size={28} />
             </div>
             <p className="text-sm text-gray-600">
               Протестировано: {testedEmployees} ({testCoverage}%)
             </p>
           </Card>
 
-          <Card className="p-6 bg-gradient-to-br from-red-50 to-white border-red-200">
+          <Card className="p-4 border-red-200" style={{ background: 'linear-gradient(to bottom right, #fee2e2, #ffffff)' }}>
             <div className="flex items-start justify-between mb-3">
               <div>
                 <p className="text-gray-600 mb-1">Группа риска</p>
                 <h2 className="text-gray-900">{riskDistribution[2].count}</h2>
               </div>
-              <AlertTriangle className="text-red-600" size={28} />
+              <AlertTriangle style={{ color: '#DB4C3F' }} size={28} />
             </div>
             <p className="text-sm text-gray-600">
               {riskDistribution[2].percentage}% от протестированных
             </p>
           </Card>
 
-          <Card className="p-6 bg-gradient-to-br from-green-50 to-white border-green-200">
+          <Card className="p-4 border-green-200" style={{ background: 'linear-gradient(to bottom right, #dcfce7, #ffffff)' }}>
             <div className="flex items-start justify-between mb-3">
               <div>
                 <p className="text-gray-600 mb-1">Низкий риск</p>
                 <h2 className="text-gray-900">{riskDistribution[0].count}</h2>
               </div>
-              <CheckCircle2 className="text-green-600" size={28} />
+              <CheckCircle2 style={{ color: '#45B24E' }} size={28} />
             </div>
             <p className="text-sm text-gray-600">
               {riskDistribution[0].percentage}% от протестированных
             </p>
           </Card>
 
-          <Card className="p-6 bg-gradient-to-br from-purple-50 to-white border-purple-200">
+          <Card className="p-4 border-purple-200" style={{ background: 'linear-gradient(to bottom right, #faf5ff, #ffffff)' }}>
             <div className="flex items-start justify-between mb-3">
               <div>
                 <p className="text-gray-600 mb-1">Средний балл</p>
                 <h2 className="text-gray-900">47/100</h2>
               </div>
-              <Activity className="text-purple-600" size={28} />
+              <Activity style={{ color: '#9757D7' }} size={28} />
             </div>
-            <p className="text-sm text-green-600">↓ -3% за месяц</p>
+            <p className="text-sm" style={{ color: '#45B24E' }}>↓ -3% за месяц</p>
           </Card>
         </div>
 
@@ -329,7 +285,7 @@ export function AdminDashboard({ onLogout, onShowEmployeeList }: AdminDashboardP
                     <Icon size={20} style={{ color: metric.color }} />
                   </div>
                 </div>
-                <p className={`text-sm ${metric.trend > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                <p className="text-sm" style={{ color: metric.trend > 0 ? '#45B24E' : '#DB4C3F' }}>
                   {metric.trend > 0 ? '↑' : '↓'} {metric.description}
                 </p>
               </Card>
@@ -340,7 +296,7 @@ export function AdminDashboard({ onLogout, onShowEmployeeList }: AdminDashboardP
         {/* Charts Row 1 */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           {/* Department Analysis */}
-          <Card className="p-6">
+          <Card className="p-4">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-gray-900">Анализ по департаментам</h3>
               <Building2 size={20} className="text-gray-500" />
@@ -352,15 +308,13 @@ export function AdminDashboard({ onLogout, onShowEmployeeList }: AdminDashboardP
                     <div className="flex items-center gap-2">
                       <span className="text-gray-900">{dept.name}</span>
                       <Badge 
-                        variant="secondary" 
-                        className={
-                          dept.riskLevel === 'Высокий' ? 'bg-red-100 text-red-700' :
-                          dept.riskLevel === 'Средний' ? 'bg-orange-100 text-orange-700' :
-                          'bg-green-100 text-green-700'
+                        value={dept.riskLevel}
+                        severity={
+                          dept.riskLevel === 'Высокий' ? 'danger' :
+                          dept.riskLevel === 'Средний' ? 'warning' :
+                          'success'
                         }
-                      >
-                        {dept.riskLevel}
-                      </Badge>
+                      />
                     </div>
                     <span className="text-sm text-gray-600">{dept.employees} чел.</span>
                   </div>
@@ -371,8 +325,8 @@ export function AdminDashboard({ onLogout, onShowEmployeeList }: AdminDashboardP
                         style={{ 
                           width: `${dept.avgScore}%`,
                           backgroundColor: 
-                            dept.riskLevel === 'Высокий' ? '#EF4444' :
-                            dept.riskLevel === 'Средний' ? '#F59E0B' :
+                            dept.riskLevel === 'Высокий' ? '#DB4C3F' :
+                            dept.riskLevel === 'Средний' ? '#FFA100' :
                             '#00B33C'
                         }}
                       />
@@ -387,7 +341,7 @@ export function AdminDashboard({ onLogout, onShowEmployeeList }: AdminDashboardP
           </Card>
 
           {/* Risk Distribution Pie */}
-          <Card className="p-6">
+          <Card className="p-4">
             <h3 className="text-gray-900 mb-4">Распределение по уровням риска</h3>
             <ResponsiveContainer width="100%" height={280}>
               <PieChart>
@@ -398,7 +352,7 @@ export function AdminDashboard({ onLogout, onShowEmployeeList }: AdminDashboardP
                   labelLine={false}
                   label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
                   outerRadius={80}
-                  fill="#8884d8"
+                  fill="#00B33C"
                   dataKey="value"
                 >
                   {pieData.map((entry, index) => (
@@ -423,7 +377,7 @@ export function AdminDashboard({ onLogout, onShowEmployeeList }: AdminDashboardP
         {/* Charts Row 2 */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           {/* Trend Chart */}
-          <Card className="p-6">
+          <Card className="p-4">
             <h3 className="text-gray-900 mb-4">Динамика выгорания</h3>
             <ResponsiveContainer width="100%" height={280}>
               <LineChart data={trendData}>
@@ -442,7 +396,7 @@ export function AdminDashboard({ onLogout, onShowEmployeeList }: AdminDashboardP
                 <Line 
                   type="monotone" 
                   dataKey="atRisk" 
-                  stroke="#EF4444" 
+                  stroke="#DB4C3F" 
                   strokeWidth={2}
                   name="% в группе риска"
                 />
@@ -451,7 +405,7 @@ export function AdminDashboard({ onLogout, onShowEmployeeList }: AdminDashboardP
           </Card>
 
           {/* Radar Chart */}
-          <Card className="p-6">
+          <Card className="p-4">
             <h3 className="text-gray-900 mb-4">Профиль компании</h3>
             <ResponsiveContainer width="100%" height={280}>
               <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>
@@ -472,25 +426,25 @@ export function AdminDashboard({ onLogout, onShowEmployeeList }: AdminDashboardP
         </div>
 
         {/* Recommendations */}
-        <Card className="p-6 mb-6 bg-gradient-to-r from-purple-50 to-blue-50 border-purple-200">
+        <Card className="p-4 mb-6 border-purple-200" style={{ background: 'linear-gradient(to bottom right, #faf5ff, #ffffff)' }}>
           <div className="flex items-start gap-4">
-            <div className="w-12 h-12 bg-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
+            <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#9757D7' }}>
               <AlertCircle className="text-white" size={24} />
             </div>
             <div className="flex-1">
               <h3 className="text-gray-900 mb-2">Приоритетные действия</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-white p-4 rounded-lg">
+                <div className="bg-white p-4 rounded-lg border border-gray-200">
                   <p className="text-sm text-gray-600 mb-1">Высокий приоритет</p>
                   <p className="text-gray-900 mb-2">Департамент курьеров</p>
                   <p className="text-sm text-gray-700">52 сотрудника в группе риска. Рекомендуется пересмотр графика и нагрузки.</p>
                 </div>
-                <div className="bg-white p-4 rounded-lg">
+                <div className="bg-white p-4 rounded-lg border border-gray-200">
                   <p className="text-sm text-gray-600 mb-1">Средний приоритет</p>
                   <p className="text-gray-900 mb-2">Клиентский сервис</p>
                   <p className="text-sm text-gray-700">21 сотрудник. Усилить поддержку, организовать тренинги по стресс-менеджменту.</p>
                 </div>
-                <div className="bg-white p-4 rounded-lg">
+                <div className="bg-white p-4 rounded-lg border border-gray-200">
                   <p className="text-sm text-gray-600 mb-1">Лучшие практики</p>
                   <p className="text-gray-900 mb-2">IT департамент</p>
                   <p className="text-sm text-gray-700">Низкий уровень выгорания. Изучить успешные практики для масштабирования.</p>
@@ -501,9 +455,9 @@ export function AdminDashboard({ onLogout, onShowEmployeeList }: AdminDashboardP
         </Card>
 
         {/* Privacy Notice */}
-        <Card className="p-4 bg-blue-50 border-blue-200">
+        <Card className="p-4 border-blue-200" style={{ background: 'linear-gradient(to bottom right, #dbeafe, #ffffff)' }}>
           <div className="flex items-start gap-3">
-            <Shield className="text-blue-600 flex-shrink-0" size={20} />
+            <Shield style={{ color: '#1F8CEB' }} className="flex-shrink-0" size={20} />
             <div>
               <p className="text-sm text-gray-700">
                 <strong>Конфиденциальность:</strong> Все данные агрегированы и анонимизированы. 

@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
+import { Button } from 'primereact/button';
+import { InputText } from 'primereact/inputtext';
 import { Send, MessageCircle, ArrowLeft } from 'lucide-react';
+import cdekLogo from '../assets/cdek-logo.svg';
 import { TestResults } from './BurnoutTest';
 import { apiService } from '../services/api';
 
@@ -149,21 +150,19 @@ ${level === 'высокий'
         <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <Button
             onClick={onGoToDashboard}
-            variant="outline"
-            className="gap-2 h-9 sm:h-10 text-sm sm:text-base order-2 sm:order-1 w-full sm:w-auto"
-            size="sm"
+            outlined
+            className="gap-2 text-sm sm:text-base order-2 sm:order-1 w-full sm:w-auto"
+            size="small"
+            icon={<ArrowLeft size={16} className="sm:w-5 sm:h-5" />}
           >
-            <ArrowLeft size={16} className="sm:w-5 sm:h-5" />
             <span className="hidden sm:inline">Вернуться в дашборд</span>
             <span className="sm:hidden">Назад</span>
           </Button>
           <div className="flex items-center gap-2 sm:gap-3 order-1 sm:order-2 w-full sm:w-auto justify-between sm:justify-start">
-            <div className="bg-[#00B33C] text-white px-2 sm:px-3 py-1 rounded text-sm sm:text-base">
-              CDEK
-            </div>
+            <img src={cdekLogo} alt="CDEK" className="h-5 sm:h-6" />
             <div className="flex-1 sm:flex-none">
               <h1 className="text-gray-900 text-base sm:text-xl">AI-Ассистент</h1>
-              <p className="text-xs sm:text-sm text-gray-500">ID: {employeeId}</p>
+              <p className="text-xs sm:text-sm text-gray-500">Персональные рекомендации</p>
             </div>
           </div>
         </div>
@@ -190,7 +189,7 @@ ${level === 'высокий'
                   }`}
                 >
                   <div
-                    className={`inline-block px-4 py-3 rounded-2xl ${
+                    className={`inline-block px-4 py-3 rounded-2xl text-[13px] sm:text-base ${
                       message.role === 'user'
                         ? 'bg-[#00B33C] text-white rounded-tr-sm'
                         : 'bg-[#F5F5F5] text-gray-900 rounded-tl-sm'
@@ -226,20 +225,22 @@ ${level === 'высокий'
       {/* Input */}
       <div className="bg-white border-t border-gray-200 px-3 sm:px-4 py-3 sm:py-4 flex-shrink-0 sticky bottom-0 left-0 right-0">
         <div className="max-w-4xl mx-auto flex gap-2">
-          <Input
+          <InputText
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={handleKeyPress}
             placeholder="Напишите сообщение..."
-            className="flex-1 h-10 sm:h-11 bg-gray-50 border-gray-200 rounded-full px-4 text-sm sm:text-base"
+            className="flex-1 h-10 sm:h-11 rounded-full"
+            disabled={isTyping}
           />
-          <button
+          <Button
             onClick={handleSend}
-            disabled={!input.trim()}
-            className="h-10 w-10 sm:h-11 sm:w-11 rounded-full bg-[#00B33C] hover:bg-[#009933] text-white flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
-          >
-            <Send size={16} className="sm:w-[18px] sm:h-[18px]" />
-          </button>
+            disabled={!input.trim() || isTyping}
+            className="h-10 w-10 sm:h-11 sm:w-11 flex-shrink-0"
+            rounded
+            severity="success"
+            icon={<Send size={16} className="sm:w-[18px] sm:h-[18px]" />}
+          />
         </div>
       </div>
     </div>

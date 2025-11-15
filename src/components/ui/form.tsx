@@ -1,8 +1,7 @@
 "use client";
 
 import * as React from "react";
-import * as LabelPrimitive from "@radix-ui/react-label@2.1.2";
-import { Slot } from "@radix-ui/react-slot@1.1.2";
+import { renderWithAsChild } from "./utils";
 import {
   Controller,
   FormProvider,
@@ -90,7 +89,7 @@ function FormItem({ className, ...props }: React.ComponentProps<"div">) {
 function FormLabel({
   className,
   ...props
-}: React.ComponentProps<typeof LabelPrimitive.Root>) {
+}: React.ComponentProps<typeof Label>) {
   const { error, formItemId } = useFormField();
 
   return (
@@ -104,23 +103,22 @@ function FormLabel({
   );
 }
 
-function FormControl({ ...props }: React.ComponentProps<typeof Slot>) {
-  const { error, formItemId, formDescriptionId, formMessageId } =
-    useFormField();
+function FormControl({ children, asChild = true, ...props }: { children?: React.ReactNode; asChild?: boolean } & React.ComponentProps<"div">) {
+  const { error, formItemId, formDescriptionId, formMessageId } = useFormField();
+  const extraProps = {
+    "data-slot": "form-control",
+    id: formItemId,
+    "aria-describedby": !error ? `${formDescriptionId}` : `${formDescriptionId} ${formMessageId}`,
+    "aria-invalid": !!error,
+    ...props,
+  } as any;
 
-  return (
-    <Slot
-      data-slot="form-control"
-      id={formItemId}
-      aria-describedby={
-        !error
-          ? `${formDescriptionId}`
-          : `${formDescriptionId} ${formMessageId}`
-      }
-      aria-invalid={!!error}
-      {...props}
-    />
-  );
+  // If children is an element we clone it with props, otherwise render a div wrapper.
+  if (React.isValidElement(children)) {
+    return React.cloneElement(children as any, { ...extraProps, ...children.props });
+  }
+
+  return renderWithAsChild(asChild, children, "div", extraProps);
 }
 
 function FormDescription({ className, ...props }: React.ComponentProps<"p">) {

@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
-import { Button } from './ui/button';
-import { RadioGroup, RadioGroupItem } from './ui/radio-group';
-import { Label } from './ui/label';
-import { Progress } from './ui/progress';
-import { ArrowRight, ArrowLeft } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Button } from 'primereact/button';
+import { RadioButton } from 'primereact/radiobutton';
+import { ProgressBar } from 'primereact/progressbar';
+import { Card } from 'primereact/card';
 import { apiService } from '../services/api';
+import cdekLogo from '../assets/cdek-logo.svg';
 
 interface BurnoutTestProps {
   onComplete: (results: TestResults) => void;
@@ -57,6 +57,17 @@ export function BurnoutTest({ onComplete, employeeId, onLogout }: BurnoutTestPro
   const [answers, setAnswers] = useState(new Array(questions.length).fill(-1) as number[]);
 
   const progress = ((currentQuestion + 1) / questions.length) * 100;
+
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.key === 'Enter' && answers[currentQuestion] !== -1) {
+        handleNext();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [currentQuestion, answers]);
 
   const handleAnswer = (value: string) => {
     const newAnswers = [...answers];
@@ -123,33 +134,35 @@ export function BurnoutTest({ onComplete, employeeId, onLogout }: BurnoutTestPro
       <div className="max-w-2xl w-full">
         {/* Logo and Logout */}
         <div className="flex justify-between items-center mb-4 sm:mb-6">
-          <div className="inline-flex items-center gap-2">
-            <div className="bg-[#00B33C] text-white px-2 sm:px-3 py-1 rounded text-sm sm:text-base">
-              CDEK
-            </div>
-            <span className="text-gray-600 text-sm sm:text-base">ID: {employeeId}</span>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <img src={cdekLogo} alt="CDEK" className="h-5 sm:h-6" />
+            <span className="text-gray-600 text-sm sm:text-base">Диагностика выгорания</span>
           </div>
-          <Button onClick={onLogout} variant="outline" size="sm" className="h-8 sm:h-9 text-xs sm:text-sm">
-            ВЫХОД
-          </Button>
+          <Button 
+            onClick={onLogout} 
+            label="ВЫХОД"
+            outlined
+            size="small"
+            className="text-xs sm:text-sm"
+          />
         </div>
 
         {/* Question Card */}
-        <div className="bg-white rounded-lg shadow-md border border-gray-200 p-4 sm:p-6 md:p-8 mb-4 sm:mb-6">
+        <Card className="mb-4 sm:mb-6">
           {/* Header inside card */}
           <div className="text-center mb-4 sm:mb-6 pb-4 sm:pb-6 border-b border-gray-200">
-            <h1 className="text-gray-900 mb-2 sm:mb-3 text-xl sm:text-2xl">Тест на выгорание</h1>
+            <h1 className="text-gray-900 mb-2 sm:mb-3 text-xl sm:text-2xl font-semibold">Тест на выгорание</h1>
             <p className="text-gray-600 text-sm sm:text-base">
               Вопрос {currentQuestion + 1} из {questions.length}
             </p>
             {/* Progress */}
             <div className="mt-3 sm:mt-4">
-              <Progress value={progress} className="h-2 bg-gray-200">
-                <div 
-                  className="h-full bg-[#00B33C] transition-all duration-300 rounded-full"
-                  style={{ width: `${progress}%` }}
-                />
-              </Progress>
+              <ProgressBar 
+                value={progress} 
+                showValue={false}
+                className="h-2"
+                color="#00B33C"
+              />
             </div>
           </div>
 
@@ -161,50 +174,50 @@ export function BurnoutTest({ onComplete, employeeId, onLogout }: BurnoutTestPro
           </div>
 
           {/* Options */}
-          <RadioGroup
-            value={answers[currentQuestion]?.toString()}
-            onValueChange={handleAnswer}
-            className="space-y-2 sm:space-y-3"
-          >
+          <div className="flex flex-col gap-2 sm:gap-3">
             {options.map((option) => (
               <div
                 key={option.value}
-                className={`flex items-center space-x-3 p-3 sm:p-4 rounded-lg border-2 transition-all cursor-pointer ${
+                className={`flex items-center gap-3 p-3 sm:p-4 rounded-lg border-2 transition-all cursor-pointer ${
                   answers[currentQuestion]?.toString() === option.value
                     ? 'border-[#00B33C] bg-green-50'
                     : 'border-gray-200 hover:border-gray-300 bg-white'
                 }`}
                 onClick={() => handleAnswer(option.value)}
               >
-                <RadioGroupItem value={option.value} id={option.value} className="flex-shrink-0" />
-                <Label
+                <RadioButton
+                  inputId={option.value}
+                  value={option.value}
+                  onChange={(e) => handleAnswer(e.value)}
+                  checked={answers[currentQuestion]?.toString() === option.value}
+                />
+                <label
                   htmlFor={option.value}
                   className="flex-1 cursor-pointer text-gray-700 text-sm sm:text-base"
                 >
                   {option.label}
-                </Label>
+                </label>
               </div>
             ))}
-          </RadioGroup>
-        </div>
+          </div>
+        </Card>
 
         {/* Navigation */}
         <div className="flex justify-between gap-3 sm:gap-4">
           <Button
             onClick={handleBack}
-            variant="outline"
+            label="НАЗАД"
+            outlined
             disabled={currentQuestion === 0}
             className="h-10 sm:h-12 px-4 sm:px-6 flex-1 sm:flex-none text-sm sm:text-base"
-          >
-            НАЗАД
-          </Button>
+          />
           <Button
             onClick={handleNext}
+            label={currentQuestion === questions.length - 1 ? 'ЗАВЕРШИТЬ' : 'ДАЛЕЕ'}
             disabled={!isAnswered}
-            className="bg-[#00B33C] hover:bg-[#009933] text-white h-10 sm:h-12 px-4 sm:px-6 flex-1 sm:flex-auto text-sm sm:text-base"
-          >
-            {currentQuestion === questions.length - 1 ? 'ЗАВЕРШИТЬ' : 'ДАЛЕЕ'}
-          </Button>
+            className="h-10 sm:h-12 px-4 sm:px-6 flex-1 sm:flex-auto text-sm sm:text-base"
+            severity="success"
+          />
         </div>
       </div>
     </div>

@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { Button } from './ui/button';
-import { Card } from './ui/card';
-import { Progress } from './ui/progress';
+import { useState, useEffect } from 'react';
+import { Button } from 'primereact/button';
+import { Card } from 'primereact/card';
+import { ProgressBar } from 'primereact/progressbar';
+import cdekLogo from '../assets/cdek-logo.svg';
 import { TestResults } from './BurnoutTest';
 import { apiService } from '../services/api';
 import {
@@ -41,7 +42,7 @@ interface DashboardProps {
 export function Dashboard({ testResults, employeeId, onBackToChat, onRetakeTest, onLogout }: DashboardProps) {
   const [latestTestResults, setLatestTestResults] = useState(testResults);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchLatestTestResults = async () => {
@@ -67,9 +68,9 @@ export function Dashboard({ testResults, employeeId, onBackToChat, onRetakeTest,
   // Определяем уровень риска
   const getRiskLevel = () => {
     if (emotionalExhaustion > 15 || depersonalization > 10) {
-      return { level: 'Высокий', color: '#EF4444', bgColor: '#FEE2E2', icon: AlertCircle };
+      return { level: 'Высокий', color: '#DB4C3F', bgColor: '#FEE2E2', icon: AlertCircle };
     } else if (emotionalExhaustion > 10 || depersonalization > 6) {
-      return { level: 'Средний', color: '#F59E0B', bgColor: '#FEF3C7', icon: AlertCircle };
+      return { level: 'Средний', color: '#FFA100', bgColor: '#FEF3C7', icon: AlertCircle };
     } else {
       return { level: 'Низкий', color: '#00B33C', bgColor: '#D1FAE5', icon: CheckCircle };
     }
@@ -106,7 +107,7 @@ export function Dashboard({ testResults, employeeId, onBackToChat, onRetakeTest,
     { name: 'Личные достижения', value: personalAccomplishment },
   ];
 
-  const COLORS = ['#EF4444', '#F59E0B', '#00B33C'];
+  const COLORS = ['#DB4C3F', '#FFA100', '#00B33C'];
 
   // Рекомендации
   const getRecommendations = () => {
@@ -116,7 +117,7 @@ export function Dashboard({ testResults, employeeId, onBackToChat, onRetakeTest,
       recommendations.push({
         title: 'Высокое эмоциональное истощение',
         icon: Brain,
-        color: '#EF4444',
+        color: '#DB4C3F',
         actions: [
           'Обратитесь к HR для обсуждения рабочей нагрузки',
           'Практикуйте техники релаксации ежедневно',
@@ -127,7 +128,7 @@ export function Dashboard({ testResults, employeeId, onBackToChat, onRetakeTest,
       recommendations.push({
         title: 'Признаки эмоциональной усталости',
         icon: Brain,
-        color: '#F59E0B',
+        color: '#FFA100',
         actions: [
           'Делайте регулярные перерывы (каждые 90 минут)',
           'Установите границы рабочего времени',
@@ -140,7 +141,7 @@ export function Dashboard({ testResults, employeeId, onBackToChat, onRetakeTest,
       recommendations.push({
         title: 'Высокий уровень деперсонализации',
         icon: Heart,
-        color: '#EF4444',
+        color: '#DB4C3F',
         actions: [
           'Восстановите социальные связи с коллегами',
           'Практикуйте эмпатию и активное слушание',
@@ -153,7 +154,7 @@ export function Dashboard({ testResults, employeeId, onBackToChat, onRetakeTest,
       recommendations.push({
         title: 'Низкая самооценка достижений',
         icon: Award,
-        color: '#F59E0B',
+        color: '#FFA100',
         actions: [
           'Ведите журнал успехов и достижений',
           'Запрашивайте обратную связь от руководителя',
@@ -187,21 +188,27 @@ export function Dashboard({ testResults, employeeId, onBackToChat, onRetakeTest,
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-2">
             <div className="flex items-center gap-2 sm:gap-3">
-              <div className="bg-[#00B33C] text-white px-2 sm:px-3 py-1 rounded text-sm sm:text-base">
-                CDEK
-              </div>
+              <img src={cdekLogo} alt="CDEK" className="h-5 sm:h-6" />
               <div>
-                <h1 className="text-gray-900 text-base sm:text-xl">Дашборд выгорания</h1>
-                <p className="text-xs sm:text-sm text-gray-500">ID: {employeeId}</p>
+                <h1 className="text-gray-900 text-base sm:text-xl">Личный кабинет</h1>
+                <p className="text-xs sm:text-sm text-gray-500">Результаты диагностики</p>
               </div>
             </div>
             <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
-              <Button onClick={onRetakeTest} variant="outline" size="sm" className="flex-1 sm:flex-none h-9 sm:h-10 text-xs sm:text-sm">
-                Пройти тест заново
-              </Button>
-              <Button onClick={onLogout} variant="outline" size="sm" className="h-9 sm:h-10 text-xs sm:text-sm">
-                ВЫХОД
-              </Button>
+              <Button 
+                onClick={onRetakeTest} 
+                label="Пройти тест заново"
+                outlined
+                size="small"
+                className="flex-1 sm:flex-none text-xs sm:text-sm"
+              />
+              <Button 
+                onClick={onLogout} 
+                label="ВЫХОД"
+                outlined
+                size="small"
+                className="text-xs sm:text-sm"
+              />
             </div>
           </div>
         </div>
@@ -211,7 +218,14 @@ export function Dashboard({ testResults, employeeId, onBackToChat, onRetakeTest,
         {/* Risk Level Card */}
         <Card className="p-4 sm:p-6 md:p-8 mb-4 sm:mb-6" style={{ backgroundColor: risk.bgColor, borderColor: risk.color }}>
           <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-4 sm:gap-8">
-            <div className="flex-1 w-full text-center sm:text-left">
+            {/* Icon at top on mobile */}
+            <div 
+              className="w-24 h-24 sm:w-32 sm:h-32 rounded-full flex items-center justify-center flex-shrink-0 sm:order-2"
+              style={{ backgroundColor: `${risk.color}15` }}
+            >
+              <AlertCircle size={48} className="sm:w-16 sm:h-16" style={{ color: risk.color }} />
+            </div>
+            <div className="flex-1 w-full text-center sm:text-left sm:order-1">
               <h3 className="text-gray-900 mb-2 sm:mb-3 text-lg sm:text-xl">Уровень выгорания</h3>
               <div className="flex flex-col sm:flex-row items-center sm:items-baseline gap-2 sm:gap-3 mb-3 sm:mb-4">
                 <span className="text-5xl sm:text-6xl text-gray-900">
@@ -224,18 +238,16 @@ export function Dashboard({ testResults, employeeId, onBackToChat, onRetakeTest,
               </p>
               <Button
                 onClick={onBackToChat}
-                className="bg-[#00B33C] hover:bg-[#009933] text-white h-10 sm:h-12 px-4 sm:px-6 w-full sm:w-auto text-xxs sm:text-base"
+                severity="success"
+                className="w-full sm:w-auto text-xs sm:text-base"
+                style={{ 
+                  height: '48px',
+                  paddingLeft: '24px', 
+                  paddingRight: '24px'
+                }}
               >
-                <span className="hidden sm:inline"><span className="hidden sm:inline">ПОЛУЧИТЬ ПЕРСОНАЛЬНЫЕ РЕКОМЕНДАЦИИ</span>
-                <span className="sm:hidden">ПЕРСОНАЛЬНЫЕ РЕКОМЕНДАЦИИ</span></span>
-                <span className="sm:hidden">ПЕРСОНАЛЬНЫЕ РЕКОМЕНДАЦИИ</span>
+                ПОЛУЧИТЬ ПЕРСОНАЛЬНЫЕ РЕКОМЕНДАЦИИ
               </Button>
-            </div>
-            <div 
-              className="w-24 h-24 sm:w-32 sm:h-32 rounded-full flex items-center justify-center flex-shrink-0"
-              style={{ backgroundColor: `${risk.color}15` }}
-            >
-              <AlertCircle size={48} className="sm:w-16 sm:h-16" style={{ color: risk.color }} />
             </div>
           </div>
         </Card>
@@ -248,14 +260,14 @@ export function Dashboard({ testResults, employeeId, onBackToChat, onRetakeTest,
                 <p className="text-gray-600 mb-1">Эмоциональное истощение</p>
                 <h3 className="text-gray-900">{emotionalExhaustion} / 30</h3>
               </div>
-              <Brain className="text-red-500" size={24} />
+              <Brain style={{ color: '#DB4C3F' }} size={24} />
             </div>
-            <Progress value={(emotionalExhaustion / 30) * 100} className="h-2 bg-gray-200">
-              <div 
-                className="h-full bg-red-500 transition-all duration-300 rounded-full"
-                style={{ width: `${(emotionalExhaustion / 30) * 100}%` }}
-              />
-            </Progress>
+            <ProgressBar 
+              value={(emotionalExhaustion / 30) * 100} 
+              showValue={false}
+              className="h-2"
+              color="#DB4C3F"
+            />
             <p className="text-sm text-gray-500 mt-2">
               {emotionalExhaustion > 15 ? 'Высокий' : emotionalExhaustion > 10 ? 'Средний' : 'Низкий'} уровень
             </p>
@@ -267,14 +279,14 @@ export function Dashboard({ testResults, employeeId, onBackToChat, onRetakeTest,
                 <p className="text-gray-600 mb-1">Деперсонализация</p>
                 <h3 className="text-gray-900">{depersonalization} / 24</h3>
               </div>
-              <Heart className="text-orange-500" size={24} />
+              <Heart style={{ color: '#FFA100' }} size={24} />
             </div>
-            <Progress value={(depersonalization / 24) * 100} className="h-2 bg-gray-200">
-              <div 
-                className="h-full bg-orange-500 transition-all duration-300 rounded-full"
-                style={{ width: `${(depersonalization / 24) * 100}%` }}
-              />
-            </Progress>
+            <ProgressBar 
+              value={(depersonalization / 24) * 100} 
+              showValue={false}
+              className="h-2"
+              color="#FFA100"
+            />
             <p className="text-sm text-gray-500 mt-2">
               {depersonalization > 10 ? 'Высокий' : depersonalization > 6 ? 'Средний' : 'Низкий'} уровень
             </p>
@@ -288,12 +300,12 @@ export function Dashboard({ testResults, employeeId, onBackToChat, onRetakeTest,
               </div>
               <Award className="text-[#00B33C]" size={24} />
             </div>
-            <Progress value={(personalAccomplishment / 30) * 100} className="h-2 bg-gray-200">
-              <div 
-                className="h-full bg-[#00B33C] transition-all duration-300 rounded-full"
-                style={{ width: `${(personalAccomplishment / 30) * 100}%` }}
-              />
-            </Progress>
+            <ProgressBar 
+              value={(personalAccomplishment / 30) * 100} 
+              showValue={false}
+              className="h-2"
+              color="#00B33C"
+            />
             <p className="text-sm text-gray-500 mt-2">
               {personalAccomplishment < 15 ? 'Низкий' : personalAccomplishment < 22 ? 'Средний' : 'Высокий'} уровень
             </p>
@@ -333,7 +345,7 @@ export function Dashboard({ testResults, employeeId, onBackToChat, onRetakeTest,
                   labelLine={false}
                   label={(entry) => entry.value}
                   outerRadius={70}
-                  fill="#8884d8"
+                  fill="#00B33C"
                   dataKey="value"
                 >
                   {pieData.map((entry, index) => (
@@ -387,7 +399,7 @@ export function Dashboard({ testResults, employeeId, onBackToChat, onRetakeTest,
 
         {/* Action Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card className="p-5 bg-purple-50 border-purple-200">
+          <Card className="p-5 border-purple-200" style={{ background: 'linear-gradient(to bottom right, #faf5ff, #ffffff)' }}>
             <Calendar className="text-purple-600 mb-2" size={28} />
             <h3 className="text-gray-900 mb-1.5">Следующий тест</h3>
             <p className="text-gray-700 mb-2">
@@ -398,7 +410,7 @@ export function Dashboard({ testResults, employeeId, onBackToChat, onRetakeTest,
             </p>
           </Card>
 
-          <Card className="p-5 bg-blue-50 border-blue-200">
+          <Card className="p-5 border-blue-200" style={{ background: 'linear-gradient(to bottom right, #dbeafe, #ffffff)' }}>
             <TrendingDown className="text-blue-600 mb-2" size={28} />
             <h3 className="text-gray-900 mb-1.5">Эффект для бизнеса</h3>
             <p className="text-gray-700 mb-1.5">Снижение выгорания на 30% ведёт к:</p>

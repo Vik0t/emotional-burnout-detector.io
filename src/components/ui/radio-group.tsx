@@ -1,44 +1,44 @@
 "use client";
 
 import * as React from "react";
-import * as RadioGroupPrimitive from "@radix-ui/react-radio-group@1.2.3";
-import { CircleIcon } from "lucide-react@0.487.0";
+import { CircleIcon } from "lucide-react";
 
 import { cn } from "./utils";
 
-function RadioGroup({
-  className,
-  ...props
-}: React.ComponentProps<typeof RadioGroupPrimitive.Root>) {
+type RadioGroupProps = {
+  value?: string;
+  onValueChange?: (value: string) => void;
+  name?: string;
+  className?: string;
+};
+
+function RadioGroup({ value, onValueChange, name, className, children, ...props }: React.PropsWithChildren<RadioGroupProps>) {
   return (
-    <RadioGroupPrimitive.Root
-      data-slot="radio-group"
-      className={cn("grid gap-3", className)}
-      {...props}
-    />
+    <div data-slot="radio-group" className={cn('grid gap-3', className)} {...props} role="radiogroup" aria-label={name}>
+      {React.Children.map(children, (child) => {
+        if (!React.isValidElement(child)) return child;
+        return React.cloneElement(child as React.ReactElement<any>, { name, checked: (child as any).props.value === value, onChange: (e: any) => onValueChange?.(e.target.value) });
+      })}
+    </div>
   );
 }
 
-function RadioGroupItem({
-  className,
-  ...props
-}: React.ComponentProps<typeof RadioGroupPrimitive.Item>) {
+type RadioGroupItemProps = React.InputHTMLAttributes<HTMLInputElement> & { value?: string; className?: string; label?: React.ReactNode; };
+
+function RadioGroupItem({ className, value, name, label, ...props }: RadioGroupItemProps) {
+  const id = props.id || `rg-${name}-${value}`;
   return (
-    <RadioGroupPrimitive.Item
-      data-slot="radio-group-item"
-      className={cn(
-        "border-input text-primary focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 aspect-square size-4 shrink-0 rounded-full border shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50",
-        className,
-      )}
-      {...props}
-    >
-      <RadioGroupPrimitive.Indicator
-        data-slot="radio-group-indicator"
-        className="relative flex items-center justify-center"
-      >
-        <CircleIcon className="fill-primary absolute top-1/2 left-1/2 size-2 -translate-x-1/2 -translate-y-1/2" />
-      </RadioGroupPrimitive.Indicator>
-    </RadioGroupPrimitive.Item>
+    <label data-slot="radio-group-item" htmlFor={id} className={cn('flex items-center gap-2 p-0', className)}>
+      <input id={id} type="radio" className="p-radiobutton-input" name={name} value={value} {...props} />
+      <span className="p-radiobutton inline-flex items-center justify-center">
+        <span className="p-radiobutton-box inline-flex items-center justify-center">
+          <span className="p-radiobutton-icon" aria-hidden>
+            <CircleIcon className="size-2 fill-primary" />
+          </span>
+        </span>
+      </span>
+      {label && <span className="text-sm text-gray-700">{label}</span>}
+    </label>
   );
 }
 

@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import * as TogglePrimitive from "@radix-ui/react-toggle@1.1.2";
 import { cva, type VariantProps } from "class-variance-authority@0.7.1";
 
 import { cn } from "./utils";
@@ -28,19 +27,27 @@ const toggleVariants = cva(
   },
 );
 
-function Toggle({
-  className,
-  variant,
-  size,
-  ...props
-}: React.ComponentProps<typeof TogglePrimitive.Root> &
-  VariantProps<typeof toggleVariants>) {
+function Toggle({ className, variant, size, checked: checkedProp, defaultChecked, onCheckedChange, children, ...props }: VariantProps<typeof toggleVariants> & {
+  checked?: boolean;
+  defaultChecked?: boolean;
+  onCheckedChange?: (checked: boolean) => void;
+  children?: React.ReactNode;
+  className?: string;
+}) {
+  const [checked, setChecked] = React.useState<boolean>(defaultChecked ?? false);
+  const isControlled = checkedProp !== undefined;
+  const current = isControlled ? checkedProp : checked;
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const next = e.target.checked;
+    if (!isControlled) setChecked(next);
+    onCheckedChange?.(next);
+  };
+
   return (
-    <TogglePrimitive.Root
-      data-slot="toggle"
-      className={cn(toggleVariants({ variant, size, className }))}
-      {...props}
-    />
+    <div data-slot="toggle" className={cn("p-togglebutton", toggleVariants({ variant, size }), current ? "p-highlight" : "", className)}>
+      <button type="button" className={cn("p-button p-button-sm", current ? "p-highlight" : "")}>{children}</button>
+      <input aria-checked={current} className="p-togglebutton-input" type="checkbox" checked={current} onChange={handleChange} {...props} />
+    </div>
   );
 }
 
