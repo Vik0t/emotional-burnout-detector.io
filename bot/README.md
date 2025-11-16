@@ -8,7 +8,7 @@ This is the backend service for the Telegram bot that integrates with the emotio
 - Periodic test reminders
 - Motivational messages
 - Burnout prevention tips
-- User data management
+- User data management with SQLite database
 - API endpoints for frontend integration
 - Group chat support
 
@@ -63,6 +63,12 @@ This is the backend service for the Telegram bot that integrates with the emotio
 ## Group Chat Support
 
 The bot supports both private chats and group chats. In group chats, users are directed to use the bot in private messages for full functionality, as web app buttons are only supported in private chats.
+
+## Database Integration
+
+The bot now uses SQLite database for user data management instead of in-memory storage. This ensures that user data persists between bot restarts and provides better scalability.
+
+The bot connects to the same database used by the main application (`server/burnout.db`) and shares user data with the main application.
 
 ## Integration with Frontend
 
