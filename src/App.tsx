@@ -7,8 +7,9 @@ import { AdminDashboard } from './components/AdminDashboard';
 import { EmployeeList } from './components/EmployeeList';
 import { EmployeeDetail } from './components/EmployeeDetail';
 import { UserAccount } from './components/UserAccount';
+import { Badges } from './components/Badges';
 
-type AppState = 'login' | 'account' | 'test' | 'chat' | 'dashboard' | 'admin' | 'employeeList' | 'employeeDetail';
+type AppState = 'login' | 'account' | 'test' | 'chat' | 'dashboard' | 'admin' | 'employeeList' | 'employeeDetail' | 'badges';
 
 export default function App() {
   const [currentState, setCurrentState] = useState('login' as AppState);
@@ -81,6 +82,14 @@ export default function App() {
     setSelectedEmployee(null);
     setCurrentState('employeeList');
   };
+  
+  const handleViewBadges = () => {
+    setCurrentState('badges');
+  };
+  
+  const handleBackToAccountFromBadges = () => {
+    setCurrentState('account');
+  };
 
   return (
     <>
@@ -95,6 +104,7 @@ export default function App() {
           onStartTest={handleStartTest}
           onOpenChat={handleOpenChat}
           onViewTestResult={handleViewTestResult}
+          onViewBadges={handleViewBadges}
         />
       )}
       
@@ -146,6 +156,14 @@ export default function App() {
           employeeId={selectedEmployee.id}
           department={selectedEmployee.department}
           onBack={handleBackToEmployeeList}
+        />
+      )}
+      
+      {currentState === 'badges' && (
+        <Badges
+          employeeId={employeeId}
+          onBack={handleBackToAccountFromBadges}
+          onLogout={handleLogout}
         />
       )}
     </>

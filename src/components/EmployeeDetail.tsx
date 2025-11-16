@@ -4,7 +4,6 @@ import { Card } from 'primereact/card';
 import { ProgressBar } from 'primereact/progressbar';
 import { Accordion, AccordionTab } from 'primereact/accordion';
 import { 
-  ArrowLeft,
   BarChart3,
   TrendingDown,
   TrendingUp,
@@ -180,10 +179,11 @@ export function EmployeeDetail({ employeeId, department, onBack }: EmployeeDetai
           <div className="flex items-center gap-2 sm:gap-3">
             <Button 
               onClick={onBack} 
+              icon="pi pi-arrow-left"
               label="НАЗАД"
               outlined
               size="small"
-              icon={<ArrowLeft size={16} />}
+              className="gap-1 sm:gap-2"
             />
             <img src={cdekLogo} alt="CDEK" className="h-5 sm:h-6" />
             <div>
@@ -203,24 +203,28 @@ export function EmployeeDetail({ employeeId, department, onBack }: EmployeeDetai
             borderColor: '#e9d5ff'
           }}
         >
-          <div className="p-6">
-            <div className="flex items-start gap-4">
+          <div className="p-4">
+            <div className="flex items-center gap-4">
               <div 
-                className="w-16 h-16 rounded-full flex items-center justify-center"
-                style={{ backgroundColor: '#e9d5ff' }}
+                className="rounded-full flex items-center justify-center flex-shrink-0"
+                style={{ 
+                  backgroundColor: '#e9d5ff',
+                  width: '80px',
+                  height: '80px'
+                }}
               >
-                <User size={32} style={{ color: '#7c3aed' }} />
+                <User size={40} style={{ color: '#7c3aed' }} />
               </div>
               <div className="flex-1">
-                <h2 className="text-gray-900 mb-3">Профиль сотрудника</h2>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+                <h2 className="text-gray-900 mb-2 text-lg">Профиль сотрудника</h2>
+                <div style={{ display: 'flex', gap: '3rem' }}>
                   <div>
                     <p className="text-xs text-gray-600 mb-1">ID сотрудника</p>
-                    <p className="text-gray-900">{employeeId}</p>
+                    <p className="text-gray-900 text-sm">{employeeId}</p>
                   </div>
                   <div>
                     <p className="text-xs text-gray-600 mb-1">Департамент</p>
-                    <p className="text-gray-900">{department}</p>
+                    <p className="text-gray-900 text-sm">{department}</p>
                   </div>
                 </div>
               </div>
@@ -455,10 +459,10 @@ export function EmployeeDetail({ employeeId, department, onBack }: EmployeeDetai
                         <Line 
                           type="monotone" 
                           dataKey="personalAccomplishment" 
-                          stroke="#8b5cf6" 
+                          stroke="#60A5FA" 
                           strokeWidth={2}
                           name="Редукция достижений"
-                          dot={{ fill: '#8b5cf6', r: 4 }}
+                          dot={{ fill: '#60A5FA', r: 4 }}
                         />
                       </LineChart>
                     </ResponsiveContainer>
@@ -554,7 +558,7 @@ export function EmployeeDetail({ employeeId, department, onBack }: EmployeeDetai
                   <div className="mb-6">
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-2">
-                        <AlertCircle size={20} style={{ color: '#8b5cf6' }} />
+                        <AlertCircle size={20} style={{ color: '#60A5FA' }} />
                         <h3 className="text-gray-900 text-lg sm:text-xl">Рекомендации и их выполнение</h3>
                       </div>
                       <div className="text-sm text-gray-600">
@@ -566,7 +570,7 @@ export function EmployeeDetail({ employeeId, department, onBack }: EmployeeDetai
                       <ProgressBar 
                         value={completionPercentage} 
                         className="h-2"
-                        color="#8b5cf6"
+                        color="#60A5FA"
                         showValue={false}
                       />
                     </div>

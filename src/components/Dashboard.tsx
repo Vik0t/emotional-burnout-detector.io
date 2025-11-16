@@ -15,7 +15,11 @@ import {
   Heart,
   Award,
   Calendar,
-  ArrowRight
+  ArrowRight,
+  Trophy,
+  Star,
+  Target,
+  Flame
 } from 'lucide-react';
 import {
   BarChart,
@@ -40,10 +44,44 @@ interface DashboardProps {
   onBackToAccount?: () => void;
 }
 
+interface GamificationData {
+  points: number;
+  streak: number;
+  last_streak_date: string;
+  badges: string[];
+}
+
+interface LeaderboardEntry {
+  employee_id: string;
+  first_name: string;
+  last_name: string;
+  department: string;
+  points: number;
+  streak: number;
+}
+
 export function Dashboard({ testResults, employeeId, onBackToChat, onRetakeTest, onLogout, onBackToAccount }: DashboardProps) {
   const [latestTestResults, setLatestTestResults] = useState(testResults);
+  const [gamificationData, setGamificationData] = useState<GamificationData | null>(null);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchGamificationData = async () => {
+      try {
+        const data = await apiService.getGamificationData(employeeId);
+        setGamificationData(data);
+        
+        const leaderboardData = await apiService.getLeaderboard();
+        setLeaderboard(leaderboardData);
+      } catch (err) {
+        console.error('Failed to fetch gamification data:', err);
+      }
+    };
+
+    fetchGamificationData();
+  }, [employeeId]);
 
   useEffect(() => {
     const fetchLatestTestResults = async () => {
@@ -189,6 +227,16 @@ export function Dashboard({ testResults, employeeId, onBackToChat, onRetakeTest,
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-2">
             <div className="flex items-center gap-2 sm:gap-3">
+              {onBackToAccount && (
+                <Button 
+                  onClick={onBackToAccount} 
+                  icon="pi pi-arrow-left"
+                  label="НАЗАД"
+                  outlined
+                  size="small"
+                  className="gap-1 sm:gap-2"
+                />
+              )}
               <img src={cdekLogo} alt="CDEK" className="h-5 sm:h-6" />
               <div>
                 <h1 className="text-gray-900 text-base sm:text-xl">Личный кабинет</h1>
@@ -196,15 +244,6 @@ export function Dashboard({ testResults, employeeId, onBackToChat, onRetakeTest,
               </div>
             </div>
             <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
-              {onBackToAccount && (
-                <Button 
-                  onClick={onBackToAccount} 
-                  label="Назад в кабинет"
-                  outlined
-                  size="small"
-                  className="flex-1 sm:flex-none text-xs sm:text-sm"
-                />
-              )}
               <Button 
                 onClick={onRetakeTest} 
                 label="Пройти тест заново"
@@ -261,6 +300,69 @@ export function Dashboard({ testResults, employeeId, onBackToChat, onRetakeTest,
             </div>
           </div>
         </Card>
+
+        {/* Gamification Section */}
+        {gamificationData && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-4 sm:mb-6">
+            <Card className="p-4 sm:p-6 border-yellow-200" style={{ background: 'linear-gradient(to bottom right, #fef3c7, #ffffff)' }}>
+              <div className="flex items-center gap-3 mb-3">
+                <Star className="text-yellow-500" size={24} />
+                <h3 className="text-gray-900">Ваши баллы</h3>
+              </div>
+              <div className="text-3xl font-bold text-gray-900 mb-1">{gamificationData.points}</div>
+              <p className="text-sm text-gray-600">За прохождение тестов и улучшения</p>
+            </Card>
+
+            <Card className="p-4 sm:p-6 border-orange-200" style={{ background: 'linear-gradient(to bottom right, #ffe5b4, #ffffff)' }}>
+              <div className="flex items-center gap-3 mb-3">
+                <Flame className="text-orange-500" size={24} />
+                <h3 className="text-gray-900">Серия</h3>
+              </div>
+              <div className="text-3xl font-bold text-gray-900 mb-1">{gamificationData.streak} дней</div>
+              <p className="text-sm text-gray-600">Подряд проходите тесты</p>
+            </Card>
+
+            <Card className="p-4 sm:p-6 border-blue-200" style={{ background: 'linear-gradient(to bottom right, #dbeafe, #ffffff)' }}>
+              <div className="flex items-center gap-3 mb-3">
+                <Award className="text-blue-500" size={24} />
+                <h3 className="text-gray-900">Достижения</h3>
+              </div>
+              <div className="text-3xl font-bold text-gray-900 mb-1">{gamificationData.badges.length}</div>
+              <p className="text-sm text-gray-600">Разблокировано значков</p>
+            </Card>
+          </div>
+        )}
+
+        {/* Leaderboard Section */}
+        {leaderboard.length > 0 && (
+          <Card className="p-4 sm:p-6 mb-4 sm:mb-6">
+            <div className="flex items-center gap-3 mb-4">
+              <Trophy className="text-yellow-500" size={24} />
+              <h3 className="text-gray-900">Таблица лидеров</h3>
+            </div>
+            <div className="space-y-3">
+              {leaderboard.slice(0, 3).map((entry, index) => (
+                <div key={entry.employee_id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-bold text-gray-700">
+                      {index + 1}
+                    </div>
+                    <div>
+                      <div className="text-gray-900 font-medium">
+                        {entry.first_name} {entry.last_name}
+                      </div>
+                      <div className="text-sm text-gray-500">{entry.department}</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-900 font-medium">{entry.points}</span>
+                    <Star className="text-yellow-500" size={16} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
 
         {/* Metrics Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-4 sm:mb-6">
@@ -409,13 +511,13 @@ export function Dashboard({ testResults, employeeId, onBackToChat, onRetakeTest,
 
         {/* Action Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card className="p-5 border-purple-200" style={{ background: 'linear-gradient(to bottom right, #faf5ff, #ffffff)' }}>
-            <Calendar className="text-purple-600 mb-2" size={28} />
+          <Card className="p-5 border-blue-200" style={{ background: 'linear-gradient(to bottom right, #eff6ff, #ffffff)' }}>
+            <Calendar className="text-blue-600 mb-2" size={28} />
             <h3 className="text-gray-900 mb-1.5">Следующий тест</h3>
             <p className="text-gray-700 mb-2">
               Рекомендуем проходить тест каждые 2 недели для отслеживания динамики
             </p>
-            <p className="text-sm text-purple-700">
+            <p className="text-sm text-blue-700">
               Следующий тест: {new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toLocaleDateString('ru-RU')}
             </p>
           </Card>

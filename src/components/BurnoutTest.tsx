@@ -131,13 +131,13 @@ export function BurnoutTest({ onComplete, employeeId, onLogout, onBackToAccount 
   const isAnswered = answers[currentQuestion] !== -1;
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-3 sm:p-4">
-      <div className="max-w-2xl w-full">
+    <div style={{ height: '100vh', maxHeight: '100vh' }} className="w-screen bg-gray-50 flex flex-col p-2 sm:p-3 overflow-hidden box-border">
+      <div className="max-w-4xl w-full mx-auto flex flex-col min-h-0" style={{ height: '100%' }}>
         {/* Logo and Logout */}
-        <div className="flex justify-between items-center mb-4 sm:mb-6">
-          <div className="flex items-center gap-2 sm:gap-3">
-            <img src={cdekLogo} alt="CDEK" className="h-5 sm:h-6" />
-            <span className="text-gray-600 text-sm sm:text-base">Диагностика выгорания</span>
+        <div className="flex justify-between items-center mb-2 flex-shrink-0" style={{ minHeight: 'fit-content' }}>
+          <div className="flex items-center gap-2">
+            <img src={cdekLogo} alt="CDEK" className="h-4 sm:h-5" />
+            <span className="text-gray-600 text-xs sm:text-sm">Диагностика выгорания</span>
           </div>
           <div className="flex gap-2">
             {onBackToAccount && (
@@ -146,7 +146,7 @@ export function BurnoutTest({ onComplete, employeeId, onLogout, onBackToAccount 
                 label="НАЗАД"
                 outlined
                 size="small"
-                className="text-xs sm:text-sm"
+                className="text-xs py-1 px-2"
               />
             )}
             <Button 
@@ -154,47 +154,48 @@ export function BurnoutTest({ onComplete, employeeId, onLogout, onBackToAccount 
               label="ВЫХОД"
               outlined
               size="small"
-              className="text-xs sm:text-sm"
+              className="text-xs py-1 px-2"
             />
           </div>
         </div>
 
         {/* Question Card */}
-        <Card className="mb-4 sm:mb-6">
+        <div className="mb-2 bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col min-h-0 overflow-hidden p-3 sm:p-4" style={{ flex: '1 1 0', minHeight: 0 }}>
           {/* Header inside card */}
-          <div className="text-center mb-4 sm:mb-6 pb-4 sm:pb-6 border-b border-gray-200">
-            <h1 className="text-gray-900 mb-2 sm:mb-3 text-xl sm:text-2xl font-semibold">Тест на выгорание</h1>
-            <p className="text-gray-600 text-sm sm:text-base">
+          <div className="text-center pb-2 border-b border-gray-200 flex-shrink-0">
+            <h1 className="text-gray-900 mb-1 text-sm sm:text-base font-semibold">Тест на выгорание</h1>
+            <p className="text-gray-600 text-xs">
               Вопрос {currentQuestion + 1} из {questions.length}
             </p>
             {/* Progress */}
-            <div className="mt-3 sm:mt-4">
+            <div className="mt-1.5">
               <ProgressBar 
                 value={progress} 
                 showValue={false}
-                className="h-2"
+                style={{ height: '6px' }}
                 color="#00B33C"
               />
             </div>
           </div>
 
           {/* Question */}
-          <div className="mb-6 sm:mb-8">
-            <p className="text-gray-900 text-base sm:text-lg leading-relaxed">
+          <div className="py-3 sm:py-4 flex-shrink-0">
+            <p className="text-gray-900 text-xs sm:text-sm leading-snug text-center">
               {questions[currentQuestion].text}
             </p>
           </div>
 
-          {/* Options */}
-          <div className="flex flex-col gap-2 sm:gap-3">
+          {/* Options - takes remaining space with scrolling */}
+          <div className="flex flex-col gap-2 overflow-y-auto" style={{ flex: '1 1 0', minHeight: 0 }}>
             {options.map((option) => (
               <div
                 key={option.value}
-                className={`flex items-center gap-3 p-3 sm:p-4 rounded-lg border-2 transition-all cursor-pointer ${
+                className={`flex items-center gap-2 sm:gap-3 p-3 sm:p-4 rounded-lg border-2 transition-all cursor-pointer flex-shrink-0 ${
                   answers[currentQuestion]?.toString() === option.value
                     ? 'border-[#00B33C] bg-green-50'
                     : 'border-gray-200 hover:border-gray-300 bg-white'
                 }`}
+                style={{ minHeight: '48px' }}
                 onClick={() => handleAnswer(option.value)}
               >
                 <RadioButton
@@ -205,29 +206,31 @@ export function BurnoutTest({ onComplete, employeeId, onLogout, onBackToAccount 
                 />
                 <label
                   htmlFor={option.value}
-                  className="flex-1 cursor-pointer text-gray-700 text-sm sm:text-base"
+                  className="flex-1 cursor-pointer text-gray-700 text-xs sm:text-sm"
                 >
                   {option.label}
                 </label>
               </div>
             ))}
           </div>
-        </Card>
+        </div>
 
         {/* Navigation */}
-        <div className="flex justify-between gap-3 sm:gap-4">
+        <div className="flex justify-between gap-3 sm:gap-4 flex-shrink-0" style={{ minHeight: 'fit-content' }}>
           <Button
             onClick={handleBack}
             label="НАЗАД"
             outlined
             disabled={currentQuestion === 0}
-            className="h-10 sm:h-12 px-4 sm:px-6 flex-1 sm:flex-none text-sm sm:text-base"
+            style={{ height: '40px', minWidth: '150px', flex: '0 0 auto' }}
+            className="px-8 text-xs sm:text-sm"
           />
           <Button
             onClick={handleNext}
             label={currentQuestion === questions.length - 1 ? 'ЗАВЕРШИТЬ' : 'ДАЛЕЕ'}
             disabled={!isAnswered}
-            className="h-10 sm:h-12 px-4 sm:px-6 flex-1 sm:flex-auto text-sm sm:text-base"
+            style={{ height: '40px', flex: '1 1 auto' }}
+            className="px-10 text-xs sm:text-sm"
             severity="success"
           />
         </div>

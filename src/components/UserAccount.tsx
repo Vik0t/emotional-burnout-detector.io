@@ -11,14 +11,13 @@ import {
   TrendingUp,
   Calendar,
   AlertCircle,
-  CheckCircle2,
-  Circle,
   FileText,
   MessageSquare,
   BarChart3,
   Clock,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Award
 } from 'lucide-react';
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
@@ -43,9 +42,10 @@ interface UserAccountProps {
   onStartTest: () => void;
   onOpenChat: () => void;
   onViewTestResult: (result: TestResult) => void;
+  onViewBadges: () => void;
 }
 
-export function UserAccount({ employeeId, onLogout, onStartTest, onOpenChat, onViewTestResult }: UserAccountProps) {
+export function UserAccount({ employeeId, onLogout, onStartTest, onOpenChat, onViewTestResult, onViewBadges }: UserAccountProps) {
   const [testResults, setTestResults] = useState<TestResult[]>([]);
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -153,28 +153,28 @@ export function UserAccount({ employeeId, onLogout, onStartTest, onOpenChat, onV
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-3 sm:px-4 py-3 sm:py-4">
-        <div className="max-w-6xl mx-auto">
+      <div className="bg-white border-b border-gray-200 px-4 py-4">
+        <div className="max-w-4xl mx-auto">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <img src={cdekLogo} alt="CDEK" className="h-5 sm:h-6" />
+            <div className="flex items-center gap-3">
+              <img src={cdekLogo} alt="CDEK" className="h-6" />
               <div>
-                <h1 className="text-gray-900 text-base sm:text-xl">Личный кабинет</h1>
-                <p className="text-xs sm:text-sm text-gray-500">Мониторинг состояния</p>
+                <h1 className="text-gray-900 text-xl">Личный кабинет</h1>
+                <p className="text-sm text-gray-500">Мониторинг состояния</p>
               </div>
             </div>
-            <Button 
+            <Button
               onClick={onLogout}
               label="ВЫХОД"
               outlined
               size="small"
-              className="text-xs sm:text-sm"
+              className="text-sm"
             />
           </div>
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-8">
+      <div className="max-w-4xl mx-auto px-4 py-6">
         {/* Welcome Section */}
         <div className="mb-6">
           <h2 className="text-gray-900 text-xl sm:text-2xl mb-2">Добро пожаловать!</h2>
@@ -186,27 +186,34 @@ export function UserAccount({ employeeId, onLogout, onStartTest, onOpenChat, onV
         {/* No Test Yet */}
         {!latestResult && (
           <Card className="mb-6">
-            <div className="text-center p-6 sm:p-8">
+            <div className="text-center p-8 sm:p-12 flex flex-col items-center">
               <div 
-                className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
-                style={{ backgroundColor: '#E5F3FF' }}
+                className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6"
+                style={{ 
+                  backgroundColor: '#DBEAFE',
+                  width: '80px',
+                  height: '80px',
+                  minWidth: '80px',
+                  minHeight: '80px'
+                }}
               >
-                <FileText size={32} style={{ color: '#00B33C' }} />
+                <FileText size={40} style={{ color: '#60A5FA' }} />
               </div>
-              <h3 className="text-gray-900 text-lg sm:text-xl mb-2">Пройдите первый тест</h3>
-              <p className="text-gray-600 text-sm sm:text-base mb-6 max-w-md mx-auto">
+              <h3 className="text-gray-900 text-xl sm:text-2xl font-semibold mb-3">Пройдите первый тест</h3>
+              <p className="text-gray-600 text-base mb-8 max-w-lg">
                 Диагностика займет всего 5 минут и поможет определить ваш уровень профессионального выгорания
               </p>
               <Button 
                 onClick={onStartTest}
-                label="НАЧАТЬ ТЕСТ"
-                className="p-button-success"
+                className="p-button-success px-6 py-3 text-base font-medium"
                 style={{ 
                   backgroundColor: '#00B33C',
-                  borderColor: '#00B33C'
+                  borderColor: '#00B33C',
+                  borderRadius: '8px'
                 }}
               >
-                <FileText size={18} className="mr-2" />
+                <FileText size={20} className="mr-2" />
+                Начать тест
               </Button>
             </div>
           </Card>
@@ -244,7 +251,7 @@ export function UserAccount({ employeeId, onLogout, onStartTest, onOpenChat, onV
                 {!canTakeTest && (
                   <div className="mb-6 p-3 sm:p-4 rounded-lg" style={{ backgroundColor: '#EFF6FF', border: '1px solid #BFDBFE' }}>
                     <div className="flex items-start gap-2 sm:gap-3">
-                      <Clock size={18} style={{ color: '#2563EB' }} className="flex-shrink-0 mt-0.5" />
+                      <Clock size={18} style={{ color: '#60A5FA' }} className="flex-shrink-0 mt-0.5" />
                       <div>
                         <p className="text-xs sm:text-sm mb-1" style={{ color: '#1E40AF' }}>
                           <strong>Следующий тест через:</strong> {timeUntilNextTest}
@@ -300,8 +307,8 @@ export function UserAccount({ employeeId, onLogout, onStartTest, onOpenChat, onV
                     onClick={onOpenChat}
                     className="w-full"
                     style={{ 
-                      backgroundColor: '#8B5CF6',
-                      borderColor: '#8B5CF6',
+                      backgroundColor: '#60A5FA',
+                      borderColor: '#60A5FA',
                       padding: '0.5rem 0.25rem',
                       display: 'flex',
                       alignItems: 'center',
@@ -316,6 +323,29 @@ export function UserAccount({ employeeId, onLogout, onStartTest, onOpenChat, onV
                     </div>
                   </Button>
                 </div>
+              </div>
+            </Card>
+            
+            {/* Badges Button */}
+            <Card className="mb-6">
+              <div className="p-4 sm:p-6">
+                <Button
+                  onClick={onViewBadges}
+                  className="w-full"
+                  style={{
+                    backgroundColor: '#60A5FA',
+                    borderColor: '#60A5FA',
+                    padding: '0.75rem 1rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <div className="flex items-center gap-2">
+                    <Award size={20} />
+                    <span>ПОСМОТРЕТЬ ВАШИ ЗНАЧКИ</span>
+                  </div>
+                </Button>
               </div>
             </Card>
 
@@ -475,10 +505,10 @@ export function UserAccount({ employeeId, onLogout, onStartTest, onOpenChat, onV
                         <Line 
                           type="monotone" 
                           dataKey="personalAccomplishment" 
-                          stroke="#8b5cf6" 
+                          stroke="#60A5FA" 
                           strokeWidth={2}
                           name="Редукция достижений"
-                          dot={{ fill: '#8b5cf6', r: 4 }}
+                          dot={{ fill: '#60A5FA', r: 4 }}
                         />
                       </LineChart>
                     </ResponsiveContainer>
@@ -583,7 +613,7 @@ export function UserAccount({ employeeId, onLogout, onStartTest, onOpenChat, onV
                   <div className="mb-6">
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-2">
-                        <AlertCircle size={20} style={{ color: '#8B5CF6' }} />
+                        <AlertCircle size={20} style={{ color: '#60A5FA' }} />
                         <h3 className="text-gray-900 text-lg sm:text-xl">Рекомендации</h3>
                       </div>
                       <div className="text-sm text-gray-600">
@@ -595,7 +625,7 @@ export function UserAccount({ employeeId, onLogout, onStartTest, onOpenChat, onV
                       <ProgressBar 
                         value={completionPercentage} 
                         className="h-2"
-                        color="#8B5CF6"
+                        color="#60A5FA"
                         showValue={false}
                       />
                     </div>
@@ -622,24 +652,17 @@ export function UserAccount({ employeeId, onLogout, onStartTest, onOpenChat, onV
                             className="mt-1"
                           />
                           <label htmlFor={rec.id} className="flex-1 cursor-pointer">
-                            <div className="flex items-start gap-2 mb-1">
-                              {rec.completed ? (
-                                <CheckCircle2 size={18} className="text-green-600 mt-0.5 flex-shrink-0" />
-                              ) : (
-                                <Circle size={18} className="text-gray-400 mt-0.5 flex-shrink-0" />
-                              )}
-                              <p 
-                                className="font-medium"
-                                style={{
-                                  color: rec.completed ? '#166534' : '#111827',
-                                  textDecoration: rec.completed ? 'line-through' : 'none'
-                                }}
-                              >
-                                {rec.title}
-                              </p>
-                            </div>
                             <p 
-                              className="text-sm ml-6"
+                              className="font-medium mb-1"
+                              style={{
+                                color: rec.completed ? '#166534' : '#111827',
+                                textDecoration: rec.completed ? 'line-through' : 'none'
+                              }}
+                            >
+                              {rec.title}
+                            </p>
+                            <p 
+                              className="text-sm"
                               style={{
                                 color: rec.completed ? '#15803d' : '#4b5563',
                                 textDecoration: rec.completed ? 'line-through' : 'none'

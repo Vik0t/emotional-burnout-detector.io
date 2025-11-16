@@ -1,15 +1,48 @@
 const migrations = [
-  // Example:
-  // {
-  //   id: 1,
-  //   name: 'add_department_to_users',
-  //   up: (db) => new Promise((resolve, reject) => {
-  //     db.run('ALTER TABLE users ADD COLUMN department TEXT', (err) => {
-  //       if (err) return reject(err);
-  //       resolve();
-  //     });
-  //   })
-  // }
+  {
+    id: 1,
+    name: 'add_password_to_users',
+    up: (db) => new Promise((resolve, reject) => {
+      db.run('ALTER TABLE users ADD COLUMN password_hash TEXT', (err) => {
+        if (err) return reject(err);
+        resolve();
+      });
+    })
+  },
+  {
+    id: 2,
+    name: 'add_department_to_users',
+    up: (db) => new Promise((resolve, reject) => {
+      db.run('ALTER TABLE users ADD COLUMN department TEXT', (err) => {
+        if (err) return reject(err);
+        resolve();
+      });
+    })
+  },
+  {
+    id: 3,
+    name: 'add_gamification_columns_to_users',
+    up: (db) => new Promise((resolve, reject) => {
+      db.serialize(() => {
+        db.run('ALTER TABLE users ADD COLUMN points INTEGER DEFAULT 0', (err) => {
+          if (err) return reject(err);
+        });
+        
+        db.run('ALTER TABLE users ADD COLUMN streak INTEGER DEFAULT 0', (err) => {
+          if (err) return reject(err);
+        });
+        
+        db.run('ALTER TABLE users ADD COLUMN last_streak_date TEXT', (err) => {
+          if (err) return reject(err);
+        });
+        
+        db.run('ALTER TABLE users ADD COLUMN badges TEXT DEFAULT "[]"', (err) => {
+          if (err) return reject(err);
+          resolve();
+        });
+      });
+    })
+  }
 ];
 
 function ensureMigrationsTable(db) {

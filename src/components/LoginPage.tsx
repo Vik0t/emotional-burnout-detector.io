@@ -33,8 +33,8 @@ export function LoginPage({ onLogin }: LoginPageProps) {
     try {
       const user = await apiService.login(login, password);
       onLogin(user.employeeId, user.isAdmin);
-    } catch (err) {
-      setError('Неверный логин или пароль');
+    } catch (err: any) {
+      setError(err.message || 'Неверный логин или пароль');
       console.error('Login error:', err);
     } finally {
       setLoading(false);
@@ -139,9 +139,9 @@ export function LoginPage({ onLogin }: LoginPageProps) {
         </Card>
 
         {/* Info Section */}
-        <Card className="mt-6 bg-purple-50 border-purple-100">
-          <h3 className="mb-3 font-semibold" style={{ color: '#7254F3' }}>Что вас ждёт:</h3>
-          <ul className="flex flex-col gap-2 text-sm" style={{ color: '#9757D7' }}>
+        <Card className="mt-6 bg-blue-50 border-blue-100">
+          <h3 className="mb-3 font-semibold" style={{ color: '#60A5FA' }}>Что вас ждёт:</h3>
+          <ul className="flex flex-col gap-2 text-sm" style={{ color: '#60A5FA' }}>
             <li className="flex items-start gap-2">
               <i className="pi pi-check-circle text-[#00B33C] mt-1"></i>
               <span>Краткий тест на диагностику выгорания (5 минут)</span>

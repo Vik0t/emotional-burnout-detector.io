@@ -74,7 +74,7 @@ export function AdminDashboard({ onLogout, onShowEmployeeList }: AdminDashboardP
     { name: 'IT', avgScore: 0, riskLevel: 'Низкий', employees: 0, atRisk: 0 },
     { name: 'Управление', avgScore: 0, riskLevel: 'Низкий', employees: 0, atRisk: 0 },
   ]);
-  const [trendData, setTrendData] = useState([
+  const [trendData, setTrendData] = useState<Array<{month: string, avgScore: number, atRisk: number}>>([
     { month: 'Май', avgScore: 0, atRisk: 0 },
     { month: 'Июнь', avgScore: 0, atRisk: 0 },
     { month: 'Июль', avgScore: 0, atRisk: 0 },
@@ -82,38 +82,12 @@ export function AdminDashboard({ onLogout, onShowEmployeeList }: AdminDashboardP
     { month: 'Сен', avgScore: 0, atRisk: 0 },
     { month: 'Окт', avgScore: 0, atRisk: 0 },
   ]);
-  const [radarData, setRadarData] = useState([
+  const [radarData, setRadarData] = useState<Array<{metric: string, value: number, fullMark: number}>>([
     { metric: 'Эмоц. истощение', value: 0, fullMark: 100 },
     { metric: 'Деперсонализация', value: 0, fullMark: 100 },
     { metric: 'Личные достиж.', value: 0, fullMark: 100 },
     { metric: 'Рабочая нагрузка', value: 0, fullMark: 100 },
     { metric: 'Work-life баланс', value: 0, fullMark: 100 },
-  ]);
-  const [businessMetrics, setBusinessMetrics] = useState([
-    {
-      title: 'Прогнозируемая текучесть',
-      value: '0%',
-      trend: 0,
-      description: '',
-      icon: Users,
-      color: '#00B33C'
-    },
-    {
-      title: 'Потенциальная экономия',
-      value: '₽0М',
-      trend: 0,
-      description: '',
-      icon: Target,
-      color: '#00B33C'
-    },
-    {
-      title: 'Индекс продуктивности',
-      value: '0/100',
-      trend: 0,
-      description: '',
-      icon: Zap,
-      color: '#FFA100'
-    },
   ]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -148,15 +122,26 @@ export function AdminDashboard({ onLogout, onShowEmployeeList }: AdminDashboardP
         // Fetch employee stats for department data
         const employeeStats = await apiService.getEmployeeStats();
         
-        // Group by department (mocked for now)
-        const newDepartmentData = [
-          { name: 'Логистика', avgScore: 45, riskLevel: 'Средний', employees: 89, atRisk: 28 },
-          { name: 'Курьеры', avgScore: 62, riskLevel: 'Высокий', employees: 156, atRisk: 52 },
-          { name: 'Клиент. сервис', avgScore: 51, riskLevel: 'Средний', employees: 67, atRisk: 21 },
-          { name: 'IT', avgScore: 38, riskLevel: 'Низкий', employees: 45, atRisk: 8 },
-          { name: 'Управление', avgScore: 42, riskLevel: 'Средний', employees: 34, atRisk: 12 },
-        ];
+        // Fetch real department data
+        const departmentStats = await apiService.getDepartmentStats();
+        
+        // Transform department data for display
+        const newDepartmentData = departmentStats.map(dept => ({
+          name: dept.name,
+          avgScore: dept.avg_score,
+          riskLevel: dept.avg_score > 60 ? 'Высокий' : dept.avg_score > 40 ? 'Средний' : 'Низкий',
+          employees: dept.employees,
+          atRisk: dept.at_risk
+        }));
         setDepartmentData(newDepartmentData);
+        
+        // Fetch trend data
+        const trendData = await apiService.getTrendData();
+        setTrendData(trendData);
+        
+        // Fetch company profile data
+        const companyProfileData = await apiService.getCompanyProfileData();
+        setRadarData(companyProfileData);
         
         setLoading(false);
       } catch (err) {
@@ -222,7 +207,7 @@ export function AdminDashboard({ onLogout, onShowEmployeeList }: AdminDashboardP
                 <p className="text-gray-600 mb-1">Всего сотрудников</p>
                 <h2 className="text-gray-900">{totalEmployees}</h2>
               </div>
-              <Users style={{ color: '#1F8CEB' }} size={28} />
+              <Users style={{ color: '#60A5FA' }} size={28} />
             </div>
             <p className="text-sm text-gray-600">
               Протестировано: {testedEmployees} ({testCoverage}%)
@@ -255,42 +240,16 @@ export function AdminDashboard({ onLogout, onShowEmployeeList }: AdminDashboardP
             </p>
           </Card>
 
-          <Card className="p-4 border-purple-200" style={{ background: 'linear-gradient(to bottom right, #faf5ff, #ffffff)' }}>
+          <Card className="p-4 border-blue-200" style={{ background: 'linear-gradient(to bottom right, #eff6ff, #ffffff)' }}>
             <div className="flex items-start justify-between mb-3">
               <div>
                 <p className="text-gray-600 mb-1">Средний балл</p>
                 <h2 className="text-gray-900">47/100</h2>
               </div>
-              <Activity style={{ color: '#9757D7' }} size={28} />
+              <Activity style={{ color: '#60A5FA' }} size={28} />
             </div>
             <p className="text-sm" style={{ color: '#45B24E' }}>↓ -3% за месяц</p>
           </Card>
-        </div>
-
-        {/* Business Impact Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          {businessMetrics.map((metric, index) => {
-            const Icon = metric.icon;
-            return (
-              <Card key={index} className="p-5">
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <p className="text-gray-600 mb-1">{metric.title}</p>
-                    <h2 className="text-gray-900">{metric.value}</h2>
-                  </div>
-                  <div 
-                    className="w-10 h-10 rounded-full flex items-center justify-center"
-                    style={{ backgroundColor: `${metric.color}20` }}
-                  >
-                    <Icon size={20} style={{ color: metric.color }} />
-                  </div>
-                </div>
-                <p className="text-sm" style={{ color: metric.trend > 0 ? '#45B24E' : '#DB4C3F' }}>
-                  {metric.trend > 0 ? '↑' : '↓'} {metric.description}
-                </p>
-              </Card>
-            );
-          })}
         </div>
 
         {/* Charts Row 1 */}
@@ -426,9 +385,9 @@ export function AdminDashboard({ onLogout, onShowEmployeeList }: AdminDashboardP
         </div>
 
         {/* Recommendations */}
-        <Card className="p-4 mb-6 border-purple-200" style={{ background: 'linear-gradient(to bottom right, #faf5ff, #ffffff)' }}>
+        <Card className="p-4 mb-6 border-orange-200" style={{ background: 'linear-gradient(to bottom right, #fff7ed, #ffffff)' }}>
           <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#9757D7' }}>
+            <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#F97316' }}>
               <AlertCircle className="text-white" size={24} />
             </div>
             <div className="flex-1">
@@ -457,7 +416,7 @@ export function AdminDashboard({ onLogout, onShowEmployeeList }: AdminDashboardP
         {/* Privacy Notice */}
         <Card className="p-4 border-blue-200" style={{ background: 'linear-gradient(to bottom right, #dbeafe, #ffffff)' }}>
           <div className="flex items-start gap-3">
-            <Shield style={{ color: '#1F8CEB' }} className="flex-shrink-0" size={20} />
+            <Shield style={{ color: '#60A5FA' }} className="flex-shrink-0" size={20} />
             <div>
               <p className="text-sm text-gray-700">
                 <strong>Конфиденциальность:</strong> Все данные агрегированы и анонимизированы. 
