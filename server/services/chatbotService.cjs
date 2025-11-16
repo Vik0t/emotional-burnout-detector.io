@@ -1,7 +1,7 @@
 // server/services/chatbotService.js
 const { OpenAI } = require("openai");
 
-const HF_TOKEN = "YOUR_HF_TOKEN_HERE"
+const HF_TOKEN = "your_hf"
 const client = new OpenAI({
 	baseURL: "https://router.huggingface.co/v1",
 	apiKey: HF_TOKEN,
@@ -323,11 +323,7 @@ class ChatbotService {
     response += `Хотите узнать подробнее о какой-то технике или обсудить другие аспекты выгорания?`;
 
     console.log('=== Generate Response Completed ===');
-    return {
-      response: response,
-      recommendationsJson: recommendationsJson,
-      incompleteCount: incomplete.length
-    };
+    return response;
   }
 }
 
@@ -346,11 +342,7 @@ async function generateChatbotResponse(testResult, message, employeeId = '1') {
   } catch (error) {
     console.error('Error in generateChatbotResponse:', error);
     console.error('Error stack:', error.stack);
-    return {
-      response: 'Извините, произошла ошибка при обработке вашего запроса. Попробуйте еще раз.',
-      recommendationsJson: '[]',
-      incompleteCount: 0
-    };
+    return 'Извините, произошла ошибка при обработке вашего запроса. Попробуйте еще раз.';
   }
 }
 

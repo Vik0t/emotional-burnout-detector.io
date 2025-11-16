@@ -7,7 +7,7 @@ import { TestResults } from './BurnoutTest';
 import { apiService } from '../services/api';
 
 interface ChatBotProps {
-  testResults: TestResults;
+  testResults?: TestResults;
   employeeId: string;
   onGoToDashboard: () => void;
   onBackToAccount?: () => void;
@@ -42,6 +42,19 @@ export function ChatBot({ testResults, employeeId, onGoToDashboard, onBackToAcco
   }, []);
 
   const getInitialMessage = () => {
+    // If we don't have test results, show a generic welcome message
+    if (!testResults) {
+      return `Здравствуйте! Я AI-ассистент CDEK по профилактике выгорания.
+      
+Для того чтобы я мог дать вам персонализированные рекомендации, пожалуйста, пройдите тест на выгорание.
+
+Чем я могу вам помочь? Вы можете спросить меня:
+• Как справиться со стрессом?
+• Как улучшить баланс работы и жизни?
+• Техники релаксации
+• Советы по тайм-менеджменту`;
+    }
+    
     const { emotionalExhaustion, depersonalization, personalAccomplishment } = testResults;
     
     let level = 'низкий';
@@ -55,7 +68,7 @@ export function ChatBot({ testResults, employeeId, onGoToDashboard, onBackToAcco
       color = 'жёлтом';
     }
 
-    return `Здравствуйте! Я AI-ассистент CDEK по профилактике выгорания. 
+    return `Здравствуйте! Я AI-ассистент CDEK по профилактике выгорания.
 
 По результатам теста ваш уровень риска выгорания - **${level}** (в ${color} диапазоне).
 
@@ -79,34 +92,24 @@ ${level === 'высокий'
   };
 
   const generateResponse = async (userMessage: string): Promise<string> => {
+    // If we don't have test results, we can't generate personalized recommendations
+    if (!testResults) {
+      return `Для получения персонализированных рекомендаций, пожалуйста, пройдите тест на выгорание.
+      
+Вы можете вернуться в личный кабинет и пройти тест, после чего я смогу дать вам рекомендации, основанные на ваших результатах.
+
+А пока я могу помочь вам с общими вопросами о стрессе и выгорании.`;
+    }
+    
     try {
       // Get response from backend API
       const response = await apiService.getChatbotResponse(employeeId, userMessage);
-      
-      // Save the chat message to the database
-      try {
-        await apiService.saveChatMessage(employeeId, userMessage, response);
-      } catch (saveError) {
-        console.error('Failed to save chat message:', saveError);
-        // Continue even if saving fails
-      }
       
       return response;
     } catch (error) {
       console.error('Failed to get chatbot response from backend:', error);
       return 'Извините, произошла ошибка при обработке вашего запроса. Попробуйте еще раз.';
     }
-
-    // Общий ответ
-    return `Спасибо за ваш вопрос! Я могу помочь вам с:
-
-✅ Управлением стрессом и техниками релаксации
-✅ Балансом работы и личной жизни
-✅ Тайм-менеджментом и продуктивностью
-✅ Улучшением качества сна и энергии
-✅ Коммуникацией с коллегами
-
-О чём бы вы хотели узнать подробнее?`;
   };
 
   const handleSend = async () => {

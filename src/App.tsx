@@ -7,6 +7,7 @@ import { AdminDashboard } from './components/AdminDashboard';
 import { EmployeeList } from './components/EmployeeList';
 import { EmployeeDetail } from './components/EmployeeDetail';
 import { UserAccount } from './components/UserAccount';
+import { apiService } from './services/api';
 
 type AppState = 'login' | 'account' | 'test' | 'chat' | 'dashboard' | 'admin' | 'employeeList' | 'employeeDetail';
 
@@ -63,7 +64,18 @@ export default function App() {
     setCurrentState('test');
   };
 
-  const handleOpenChat = () => {
+  const handleOpenChat = async () => {
+    // If we don't have test results yet, load the latest one
+    if (!testResults && !selectedTestResult) {
+      try {
+        const latestResult = await apiService.getLatestTestResults(employeeId);
+        setTestResults(latestResult);
+        setSelectedTestResult(latestResult);
+      } catch (error) {
+        console.error('Failed to load latest test results:', error);
+        // Even if we can't load results, we still want to show the chat
+      }
+    }
     setCurrentState('chat');
   };
 
@@ -107,7 +119,7 @@ export default function App() {
         />
       )}
       
-      {currentState === 'chat' && (testResults || selectedTestResult) && (
+      {currentState === 'chat' && (
         <ChatBot
           testResults={(selectedTestResult || testResults)!}
           employeeId={employeeId}
