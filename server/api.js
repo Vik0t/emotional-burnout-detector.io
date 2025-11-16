@@ -47,10 +47,10 @@ const { generateChatbotResponse } = require('./services/chatbotService');
 const bcrypt = require('bcrypt');
 
 const app = express();
-const PORT = process.env.PORT || 3002;
+const PORT = process.env.PORT || 8935;
 
 // ======== Middleware ========
-app.use(cors());
+// app.use(cors());
 app.use(bodyParser.json());
 
 // ======== Swagger ========

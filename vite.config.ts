@@ -3,8 +3,10 @@
   import react from '@vitejs/plugin-react-swc';
   import path from 'path';
 
+  const dotenv = require('dotenv');
+
   export default defineConfig({
-    base: '/emotional-burnout-detector.io/',
+    base: '/',
     plugins: [react()],
     resolve: {
       extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
@@ -55,7 +57,7 @@
       outDir: 'build',
     },
     server: {
-      port: 3000,
+      port: process.env.PORT || 8935,
       open: true,
     },
   });
