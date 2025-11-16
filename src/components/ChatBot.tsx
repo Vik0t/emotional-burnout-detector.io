@@ -34,12 +34,63 @@ export function ChatBot({ testResults, employeeId, onGoToDashboard, onBackToAcco
   }, [messages]);
 
   useEffect(() => {
-    // Начальное сообщение от бота
-    const initialMessage = getInitialMessage();
-    const now = new Date();
-    const timeString = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-    setMessages([{ role: 'assistant', content: initialMessage, timestamp: timeString }]);
-  }, []);
+    // Загружаем историю чата из базы данных
+    const loadChatHistory = async () => {
+      try {
+        const history = await apiService.getChatHistory(employeeId);
+        
+        if (history && history.length > 0) {
+          // Преобразуем историю в формат сообщений
+          const messages = history.map(chat => ({
+            role: 'user' as const,
+            content: chat.message,
+            timestamp: new Date(chat.created_at).toLocaleTimeString('ru-RU', { 
+              hour: '2-digit', 
+              minute: '2-digit' 
+            })
+          }));
+          
+          // Добавляем ответы бота
+          history.forEach(chat => {
+            if (chat.response) {
+              messages.push({
+                role: 'assistant' as const,
+                content: chat.response,
+                timestamp: new Date(chat.created_at).toLocaleTimeString('ru-RU', { 
+                  hour: '2-digit', 
+                  minute: '2-digit' 
+                })
+              });
+            }
+          });
+          
+          // Сортируем по времени
+          messages.sort((a, b) => {
+            const timeA = new Date(`2000-01-01 ${a.timestamp}`).getTime();
+            const timeB = new Date(`2000-01-01 ${b.timestamp}`).getTime();
+            return timeA - timeB;
+          });
+          
+          setMessages(messages);
+        } else {
+          // Если истории нет, показываем начальное сообщение
+          const initialMessage = getInitialMessage();
+          const now = new Date();
+          const timeString = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+          setMessages([{ role: 'assistant', content: initialMessage, timestamp: timeString }]);
+        }
+      } catch (error) {
+        console.error('Failed to load chat history:', error);
+        // В случае ошибки показываем начальное сообщение
+        const initialMessage = getInitialMessage();
+        const now = new Date();
+        const timeString = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+        setMessages([{ role: 'assistant', content: initialMessage, timestamp: timeString }]);
+      }
+    };
+
+    loadChatHistory();
+  }, [employeeId]); // Перезагружаем при смене сотрудника
 
   const getInitialMessage = () => {
     // If we don't have test results, show a generic welcome message
@@ -105,10 +156,23 @@ ${level === 'высокий'
       // Get response from backend API
       const response = await apiService.getChatbotResponse(employeeId, userMessage);
       
+      // Backend chatbot service already saves the message to database
+      // No need to call saveChatMessage separately
+      
       return response;
     } catch (error) {
       console.error('Failed to get chatbot response from backend:', error);
-      return 'Извините, произошла ошибка при обработке вашего запроса. Попробуйте еще раз.';
+      
+      // Fallback response in case of error
+      return `Извините, произошла ошибка при обработке вашего запроса. 
+
+Попробуйте еще раз, или обратитесь к администратору системы.
+
+Вот что я могу помочь:
+✅ Управление стрессом и техники релаксации
+✅ Баланс работы и личной жизни
+✅ Тайм-менеджмент и продуктивность
+✅ Улучшение качества сна и энергии`;
     }
   };
 

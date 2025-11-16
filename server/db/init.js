@@ -10,6 +10,7 @@ function initializeDatabase(db) {
           last_name TEXT,
           email TEXT,
           telegram_chat_id TEXT,
+          password_hash TEXT,
           is_admin BOOLEAN DEFAULT FALSE,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           last_login DATETIME,
@@ -69,8 +70,8 @@ function initializeDatabase(db) {
 
       // дефолтный админ
       db.run(`
-        INSERT OR IGNORE INTO users (employee_id, first_name, is_admin, department)
-        VALUES ('2', 'Admin', TRUE, 'Управление')
+        INSERT OR IGNORE INTO users (employee_id, first_name, is_admin)
+        VALUES ('2', 'Admin', TRUE)
       `, (err) => {
         if (err) {
           console.error('Error creating default admin user:', err.message);
@@ -104,20 +105,20 @@ function initializeDatabase(db) {
         }
       });
       
-      // Add sample users with departments
+      // Add sample users
       const sampleUsers = [
-        { employee_id: '1', first_name: 'Иван', last_name: 'Иванов', department: 'IT' },
-        { employee_id: '3', first_name: 'Петр', last_name: 'Петров', department: 'Логистика' },
-        { employee_id: '4', first_name: 'Мария', last_name: 'Сидорова', department: 'Курьеры' },
-        { employee_id: '5', first_name: 'Анна', last_name: 'Кузнецова', department: 'Клиент. сервис' }
+        { employee_id: '1', first_name: 'Иван', last_name: 'Иванов' },
+        { employee_id: '3', first_name: 'Петр', last_name: 'Петров' },
+        { employee_id: '4', first_name: 'Мария', last_name: 'Сидорова' },
+        { employee_id: '5', first_name: 'Анна', last_name: 'Кузнецова' }
       ];
       
       let completed = 0;
       sampleUsers.forEach(user => {
         db.run(`
-          INSERT OR IGNORE INTO users (employee_id, first_name, last_name, department)
-          VALUES (?, ?, ?, ?)
-        `, [user.employee_id, user.first_name, user.last_name, user.department], (err) => {
+          INSERT OR IGNORE INTO users (employee_id, first_name, last_name)
+          VALUES (?, ?, ?)
+        `, [user.employee_id, user.first_name, user.last_name], (err) => {
           if (err) {
             console.error('Error creating sample user:', err.message);
           } else {

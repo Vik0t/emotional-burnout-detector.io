@@ -120,12 +120,39 @@ export default function App() {
       )}
       
       {currentState === 'chat' && (
-        <ChatBot
-          testResults={(selectedTestResult || testResults)!}
-          employeeId={employeeId}
-          onGoToDashboard={handleGoToDashboard}
-          onBackToAccount={handleBackToAccount}
-        />
+        (testResults || selectedTestResult) ? (
+          <ChatBot
+            testResults={(selectedTestResult || testResults) as TestResults}
+            employeeId={employeeId}
+            onGoToDashboard={handleGoToDashboard}
+            onBackToAccount={handleBackToAccount}
+          />
+        ) : (
+          <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+            <div className="text-center max-w-md mx-auto p-6">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                Необходимо пройти тест
+              </h2>
+              <p className="text-gray-600 mb-6">
+                Для использования чата с AI необходимо сначала пройти тест на определение уровня выгорания.
+              </p>
+              <div className="space-y-3">
+                <button
+                  onClick={handleStartTest}
+                  className="w-full bg-[#00B33C] text-white py-3 px-4 rounded-lg hover:bg-[#009926] transition-colors"
+                >
+                  Пройти тест
+                </button>
+                <button
+                  onClick={handleBackToAccount}
+                  className="w-full bg-gray-200 text-gray-700 py-3 px-4 rounded-lg hover:bg-gray-300 transition-colors"
+                >
+                  Вернуться в кабинет
+                </button>
+              </div>
+            </div>
+          </div>
+        )
       )}
       
       {currentState === 'dashboard' && (testResults || selectedTestResult) && (

@@ -35,6 +35,10 @@ interface Recommendation {
   title: string;
   description: string;
   completed: boolean;
+  relatedMessage?: string;
+  intent?: string;
+  createdAt?: string;
+  explanation?: string;
 }
 
 interface UserAccountProps {
@@ -100,14 +104,31 @@ export function UserAccount({ employeeId, onLogout, onStartTest, onOpenChat, onV
         const history = await apiService.getTestHistory(employeeId);
         setTestResults(history || []);
 
-        const savedRecommendations = localStorage.getItem(`recommendations_${employeeId}`);
-        if (savedRecommendations) {
-          setRecommendations(JSON.parse(savedRecommendations));
-        } else if (history && history.length > 0) {
-          const latest = history[history.length - 1];
-          const defaultRecommendations = getRecommendationsByScore(latest);
-          setRecommendations(defaultRecommendations);
-          localStorage.setItem(`recommendations_${employeeId}`, JSON.stringify(defaultRecommendations));
+        // Загружаем рекомендации из чат-бота
+        try {
+          const recommendationsData = await apiService.getRecommendations(employeeId);
+          
+          // Адаптируем формат рекомендаций из чат-бота под интерфейс UserAccount
+          const adaptedRecommendations = recommendationsData.recommendations.map(rec => ({
+            id: rec.id.toString(),
+            title: rec.text,
+            description: rec.explanation || 'Рекомендация от AI-ассистента',
+            completed: rec.completed,
+            relatedMessage: rec.relatedMessage,
+            intent: rec.intent,
+            createdAt: rec.createdAt,
+            explanation: rec.explanation
+          }));
+          
+          setRecommendations(adaptedRecommendations);
+        } catch (error) {
+          console.log('No recommendations from chatbot yet, using fallback');
+          // Если нет рекомендаций из чат-бота, используем статические как fallback
+          if (history && history.length > 0) {
+            const latest = history[history.length - 1];
+            const defaultRecommendations = getRecommendationsByScore(latest);
+            setRecommendations(defaultRecommendations);
+          }
         }
       } catch (error) {
         console.error('Failed to load data:', error);
@@ -119,12 +140,21 @@ export function UserAccount({ employeeId, onLogout, onStartTest, onOpenChat, onV
     loadData();
   }, [employeeId]);
 
-  const toggleRecommendation = (id: string) => {
-    const updated = recommendations.map(rec => 
-      rec.id === id ? { ...rec, completed: !rec.completed } : rec
-    );
-    setRecommendations(updated);
-    localStorage.setItem(`recommendations_${employeeId}`, JSON.stringify(updated));
+  const toggleRecommendation = async (id: string) => {
+    try {
+      // Обновляем статус в backend
+      await apiService.updateRecommendationStatus(employeeId, parseFloat(id));
+      
+      // Обновляем локальное состояние
+      const updated = recommendations.map(rec => 
+        rec.id === id ? { ...rec, completed: !rec.completed } : rec
+      );
+      setRecommendations(updated);
+    } catch (error) {
+      console.error('Failed to update recommendation status:', error);
+      // В случае ошибки показываем уведомление пользователю
+      alert('Не удалось обновить статус рекомендации. Попробуйте еще раз.');
+    }
   };
 
   const completedCount = recommendations.filter(r => r.completed).length;
@@ -296,25 +326,27 @@ export function UserAccount({ employeeId, onLogout, onStartTest, onOpenChat, onV
                       <span className="sm:hidden text-center">ПРОЙТИ<br/>ЗАНОВО</span>
                     </div>
                   </Button>
-                  <Button 
-                    onClick={onOpenChat}
-                    className="w-full"
-                    style={{ 
-                      backgroundColor: '#8B5CF6',
-                      borderColor: '#8B5CF6',
-                      padding: '0.5rem 0.25rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      minHeight: '3rem'
-                    }}
-                  >
-                    <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2" style={{ fontSize: '0.7rem' }}>
-                      <MessageSquare size={14} className="sm:w-4 sm:h-4" />
-                      <span className="hidden sm:inline text-sm">ЧАТ С AI</span>
-                      <span className="sm:hidden">ЧАТ С AI</span>
-                    </div>
-                  </Button>
+                  {testResults.length > 0 && (
+                    <Button 
+                      onClick={onOpenChat}
+                      className="w-full"
+                      style={{ 
+                        backgroundColor: '#8B5CF6',
+                        borderColor: '#8B5CF6',
+                        padding: '0.5rem 0.25rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        minHeight: '3rem'
+                      }}
+                    >
+                      <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2" style={{ fontSize: '0.7rem' }}>
+                        <MessageSquare size={14} className="sm:w-4 sm:h-4" />
+                        <span className="hidden sm:inline text-sm">ЧАТ С AI</span>
+                        <span className="sm:hidden">ЧАТ С AI</span>
+                      </div>
+                    </Button>
+                  )}
                 </div>
               </div>
             </Card>

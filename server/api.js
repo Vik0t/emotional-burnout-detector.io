@@ -39,7 +39,7 @@ const {
 } = require('./repositories/hrRepository');
 
 // Сервис чат-бота
-const { generateChatbotResponse } = require('./services/chatbotService.cjs');
+const { generateChatbotResponse, chatbotService } = require('./services/chatbotService.cjs');
 const bcrypt = require('bcrypt');
 
 const app = express();
@@ -662,6 +662,112 @@ app.get('/api/chat-messages/:employeeId', (req, res) => {
 
     res.json(rows);
   });
+});
+
+/**
+ * @swagger
+ * /api/recommendations/{employeeId}:
+ *   get:
+ *     summary: Получить рекомендации из чат-бота для сотрудника
+ *     tags:
+ *       - Recommendations
+ *     parameters:
+ *       - in: path
+ *         name: employeeId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Рекомендации из чат-бота
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 recommendations:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: number
+ *                       text:
+ *                         type: string
+ *                       completed:
+ *                         type: boolean
+ *                       createdAt:
+ *                         type: string
+ *                       completedAt:
+ *                         type: string
+ *                       relatedMessage:
+ *                         type: string
+ *                       intent:
+ *                         type: string
+ *                       explanation:
+ *                         type: string
+ *                 stats:
+ *                   type: object
+ *                   properties:
+ *                     total:
+ *                       type: integer
+ *                     completed:
+ *                       type: integer
+ *                     incomplete:
+ *                       type: integer
+ *       500:
+ *         description: Ошибка базы данных
+ */
+app.get('/api/recommendations/:employeeId', (req, res) => {
+  const { employeeId } = req.params;
+
+  try {
+    const recommendationsData = chatbotService.syncWithPersonalAccount(employeeId);
+    res.json(recommendationsData);
+  } catch (error) {
+    console.error('Error getting recommendations:', error);
+    return res.status(500).json({ error: 'Failed to get recommendations' });
+  }
+});
+
+/**
+ * @swagger
+ * /api/recommendations/{employeeId}/{recommendationId}:
+ *   put:
+ *     summary: Обновить статус выполнения рекомендации
+ *     tags:
+ *       - Recommendations
+ *     parameters:
+ *       - in: path
+ *         name: employeeId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: recommendationId
+ *         required: true
+ *         schema:
+ *           type: number
+ *     responses:
+ *       200:
+ *         description: Статус обновлен
+ *       500:
+ *         description: Ошибка базы данных
+ */
+app.put('/api/recommendations/:employeeId/:recommendationId', (req, res) => {
+  const { employeeId, recommendationId } = req.params;
+
+  try {
+    const success = chatbotService.markRecommendationComplete(employeeId, parseFloat(recommendationId));
+    if (success) {
+      res.json({ success: true });
+    } else {
+      res.status(404).json({ error: 'Recommendation not found' });
+    }
+  } catch (error) {
+    console.error('Error updating recommendation:', error);
+    return res.status(500).json({ error: 'Failed to update recommendation' });
+  }
 });
 
 /**

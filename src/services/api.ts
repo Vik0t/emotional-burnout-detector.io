@@ -185,20 +185,6 @@ class ApiService {
   }
 
   // Chat messages
-  async saveChatMessage(employeeId: string, message: string, response: string): Promise<void> {
-    const responseObj = await fetch(`${API_BASE_URL}/chat-messages`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ employeeId, message, response }),
-    });
-
-    if (!responseObj.ok) {
-      throw new Error('Failed to save chat message');
-    }
-  }
-
   async getChatHistory(employeeId: string): Promise<ChatMessage[]> {
     const response = await fetch(`${API_BASE_URL}/chat-messages/${employeeId}`);
 
@@ -223,7 +209,47 @@ class ApiService {
     }
 
     const data = await response.json();
-    return data.response;
+    return data.response.response;
+  }
+
+  // Рекомендации из чат-бота
+  async getRecommendations(employeeId: string): Promise<{
+    recommendations: Array<{
+      id: number;
+      text: string;
+      completed: boolean;
+      createdAt: string;
+      completedAt?: string;
+      relatedMessage: string;
+      intent: string;
+      explanation?: string;
+    }>;
+    stats: {
+      total: number;
+      completed: number;
+      incomplete: number;
+    };
+  }> {
+    const response = await fetch(`${API_BASE_URL}/recommendations/${employeeId}`);
+
+    if (!response.ok) {
+      throw new Error('Failed to get recommendations');
+    }
+
+    return await response.json();
+  }
+
+  async updateRecommendationStatus(employeeId: string, recommendationId: number): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/recommendations/${employeeId}/${recommendationId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to update recommendation status');
+    }
   }
 
   // HR Dashboard
