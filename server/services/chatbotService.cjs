@@ -1,7 +1,7 @@
 // server/services/chatbotService.js
 const { OpenAI } = require("openai");
 
-const HF_TOKEN = "your_hf"
+const HF_TOKEN = "hf"
 const client = new OpenAI({
 	baseURL: "https://router.huggingface.co/v1",
 	apiKey: HF_TOKEN,
@@ -230,6 +230,27 @@ class ChatbotService {
     return false;
   }
 
+  extractRecommendations(response) {
+    // Simple extraction of recommendations from response
+    // In a real implementation, you might want to use more sophisticated NLP
+    const lines = response.split('\n');
+    const recommendations = [];
+    
+    for (const line of lines) {
+      const trimmed = line.trim();
+      // Look for lines that start with a number followed by a dot or bullet points
+      if (/^[\d•\-\*]/.test(trimmed) || trimmed.length > 20) {
+        // Remove numbering or bullet points
+        const cleanLine = trimmed.replace(/^[\d•\-\*\s]+/, '').trim();
+        if (cleanLine.length > 10) {
+          recommendations.push(cleanLine);
+        }
+      }
+    }
+    
+    return recommendations;
+  }
+
   async generateResponse(testResult, message, employeeId) {
     console.log('=== Generate Response Started ===');
     console.log('Message:', message);
@@ -240,12 +261,44 @@ class ChatbotService {
     const level = this.getBurnoutLevel(testResult);
     console.log('Burnout level:', level);
 
+    // Try to use Hugging Face API for generating response
+    try {
+      const systemPrompt = `Ты AI-ассистент по профилактике профессионального выгорания.
+      У сотрудника уровень выгорания: ${level} (${emotional_exhaustion}/30 истощение, ${depersonalization}/24 деперсонализация, ${personal_accomplishment}/30 личные достижения).
+      Отвечай на вопросы, связанные с выгоранием, стрессом и психологическим состоянием на работе.
+      Давай персонализированные рекомендации, основанные на показателях сотрудника.
+      Не отвечай на вопросы, не связанные с темой выгорания, работы и психологического состояния.`;
+
+      const completion = await client.chat.completions.create({
+        model: "meta-llama/Meta-Llama-3-8B-Instruct",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: message }
+        ],
+        max_tokens: 500,
+        temperature: 0.7
+      });
+
+      const aiResponse = completion.choices[0].message.content.trim();
+
+      // Save recommendations from AI response
+      const recommendations = this.extractRecommendations(aiResponse);
+      this.saveRecommendations(employeeId, recommendations);
+
+      console.log('=== Generate Response Completed ===');
+      return aiResponse;
+    } catch (error) {
+      console.error('Error generating response with HF API:', error);
+      // Fallback to template-based responses
+      console.log('Falling back to template-based responses');
+    }
+
     const intent = await this.analyzeIntent(message);
     console.log('Detected intent:', intent);
 
     if (intent === 'IRRELEVANT') {
       console.log('Returning irrelevant response');
-      return `Я специализируюсь на вопросах, связанных с эмоциональным выгоранием и стрессом на работе. 
+      return `Я специализируюсь на вопросах, связанных с эмоциональным выгоранием и стрессом на работе.
 
 Могу помочь вам с:
 ✅ Управлением стрессом и техниками релаксации
