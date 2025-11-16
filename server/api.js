@@ -609,15 +609,19 @@ app.post('/api/chatbot/response', async (req, res) => {
     }
 
     try {
-      const responseText = await generateChatbotResponse(testResult, message);
+      const responseResult = await generateChatbotResponse(testResult, message);
+      
+      // Handle both string and object responses
+      const responseText = typeof responseResult === 'string' ? responseResult : responseResult.response;
+      const responseToSend = typeof responseResult === 'string' ? responseResult : { response: responseResult.response };
 
       saveChatMessage(db, employeeId, message, responseText, (saveErr) => {
         if (saveErr) {
           console.error('Error saveChatMessage:', saveErr);
-          return res.status(500).json({ error: 'Failed to save chat message' });
+          // Don't fail the request if saving fails, just log the error
         }
 
-        res.json({ response: responseText });
+        res.json(responseToSend);
       });
     } catch (error) {
       console.error('Error generating chatbot response:', error);

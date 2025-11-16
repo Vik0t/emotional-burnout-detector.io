@@ -209,7 +209,7 @@ class ApiService {
     }
 
     const data = await response.json();
-    return data.response.response;
+    return data.response;
   }
 
   // Рекомендации из чат-бота
