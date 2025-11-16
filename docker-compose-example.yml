@@ -1,0 +1,23 @@
+services:
+  burnout-frontend:
+    build: .
+    container_name: burnout-frontend
+    ports:
+      - "8935:8935"
+    environment:
+      - PORT=8935
+      - VITE_NO_BACKEND=false
+    restart: always
+  
+  burnout-backend:
+    build: ./server/
+    container_name: burnout-backend
+    ports:
+      - "8934:8934"
+    environment:
+      - PORT=8934
+      - NODE_ENV=development
+      - HF_TOKEN=token
+    # env_file:
+    #   - ./server/.env
+    restart: always

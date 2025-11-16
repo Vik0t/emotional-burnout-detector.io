@@ -1,9 +1,20 @@
 const express = require('express');
 const TelegramBot = require('node-telegram-bot-api');
 const path = require('path');
+const sqlite3 = require('sqlite3').verbose();
 // Use built-in fetch in Node.js v18+
 const fetch = globalThis.fetch || require('node-fetch');
 require('dotenv').config();
+
+// Database connection
+const dbPath = path.join(__dirname, '..', 'server', 'burnout.db');
+const db = new sqlite3.Database(dbPath, (err) => {
+  if (err) {
+    console.error('Error opening database:', err.message);
+  } else {
+    console.log('Connected to the SQLite database at', dbPath);
+  }
+});
 
 // Initialize Express app
 const app = express();
@@ -23,9 +34,118 @@ if (!token) {
 
 const bot = new TelegramBot(token, { polling: true });
 
-// In-memory storage for user data (in production, use a database)
-const users = new Map();
+// In-memory storage for user data (removed - now using database)
+// const users = new Map();
+// Notification timers storage
 const notificationTimers = new Map();
+
+// Function to get user from database
+function getUserFromDB(chatId, callback) {
+  db.get('SELECT * FROM users WHERE telegram_chat_id = ?', [chatId.toString()], (err, row) => {
+    if (err) {
+      console.error('Error getting user from database:', err.message);
+      return callback(err, null);
+    }
+    callback(null, row);
+  });
+}
+
+// Function to update user in database
+function updateUserInDB(chatId, userData, callback) {
+  const sql = `
+    UPDATE users
+    SET first_name = ?, last_test_date = ?, next_test_date = ?, notifications_enabled = ?
+    WHERE telegram_chat_id = ?
+  `;
+  const params = [
+    userData.firstName,
+    userData.lastTestDate,
+    userData.nextTestDate,
+    userData.notificationsEnabled ? 1 : 0,
+    chatId.toString()
+  ];
+  
+  db.run(sql, params, function(err) {
+    if (err) {
+      console.error('Error updating user in database:', err.message);
+      return callback(err);
+    }
+    callback(null);
+  });
+}
+
+// Function to register user in database
+function registerUserInDB(chatId, firstName, callback) {
+  // First check if user already exists
+  db.get('SELECT * FROM users WHERE telegram_chat_id = ?', [chatId.toString()], (err, row) => {
+    if (err) {
+      console.error('Error checking user in database:', err.message);
+      return callback(err);
+    }
+    
+    if (row) {
+      // User already exists, update their info
+      const sql = `
+        UPDATE users
+        SET first_name = ?, last_login = ?
+        WHERE telegram_chat_id = ?
+      `;
+      db.run(sql, [firstName, new Date().toISOString(), chatId.toString()], function(err) {
+        if (err) {
+          console.error('Error updating user:', err.message);
+          return callback(err);
+        }
+        callback(null, row);
+      });
+    } else {
+      // User doesn't exist, create new user
+      // First try to find by employee_id if it's the same as chatId
+      db.get('SELECT * FROM users WHERE employee_id = ?', [chatId.toString()], (err, existingUser) => {
+        if (err) {
+          console.error('Error checking existing user:', err.message);
+          return callback(err);
+        }
+        
+        if (existingUser) {
+          // Update existing user with telegram_chat_id
+          const sql = `
+            UPDATE users
+            SET telegram_chat_id = ?, first_name = ?, last_login = ?
+            WHERE employee_id = ?
+          `;
+          db.run(sql, [chatId.toString(), firstName, new Date().toISOString(), chatId.toString()], function(err) {
+            if (err) {
+              console.error('Error updating existing user with telegram info:', err.message);
+              return callback(err);
+            }
+            callback(null, existingUser);
+          });
+        } else {
+          // Create new user
+          const sql = `
+            INSERT INTO users (employee_id, first_name, telegram_chat_id, last_login)
+            VALUES (?, ?, ?, ?)
+          `;
+          db.run(sql, [chatId.toString(), firstName, chatId.toString(), new Date().toISOString()], function(err) {
+            if (err) {
+              console.error('Error creating user:', err.message);
+              return callback(err);
+            }
+            
+            // Get the created user
+            db.get('SELECT * FROM users WHERE id = ?', [this.lastID], (err, newUser) => {
+              if (err) {
+                console.error('Error getting created user:', err.message);
+                return callback(err);
+              }
+              callback(null, newUser);
+            });
+          });
+        }
+      });
+    }
+  });
+}
 
 // Welcome message and mini app integration
 bot.onText(/\/start/, async (msg) => {
@@ -33,42 +153,19 @@ bot.onText(/\/start/, async (msg) => {
   const firstName = msg.from?.first_name || 'User';
   const chatType = msg.chat.type; // 'private', 'group', 'supergroup', etc.
   
-  // Register user with backend
-  try {
-    const response = await fetch(`${backendApiUrl}/users`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        employee_id: chatId.toString(),
-        first_name: firstName,
-        last_name: msg.from?.last_name || '',
-        email: '' // Empty email for Telegram users
-      }),
-    });
-    
-    if (!response.ok) {
-      console.error('Failed to register user with backend:', response.status);
+  // Register user in database
+  registerUserInDB(chatId, firstName, (err, user) => {
+    if (err) {
+      console.error('Error registering user in database:', err);
+      // Send error message to user
+      bot.sendMessage(chatId, 'Произошла ошибка при регистрации. Пожалуйста, попробуйте позже.');
+      return;
     }
-  } catch (error) {
-    console.error('Error registering user with backend:', error);
-  }
-  
-  // Store user data in memory for quick access
-  users.set(chatId, {
-    id: chatId,
-    firstName: firstName,
-    lastTestDate: null,
-    nextTestDate: null,
-    notificationsEnabled: true,
-    registrationDate: new Date()
-  });
-  
-  // Different welcome message for private vs group chats
-  if (chatType === 'private') {
-    const welcomeMessage = `Привет, ${firstName}! 👋
     
+    // Different welcome message for private vs group chats
+    if (chatType === 'private') {
+      const welcomeMessage = `Привет, ${firstName}! 👋
+      
 Добро пожаловать в приложение для диагностики эмоционального выгорания! 🧠✨
 
 Я помогу вам:
@@ -78,20 +175,20 @@ bot.onText(/\/start/, async (msg) => {
 🔹 Просмотреть статистику (для HR)
 
 Нажмите кнопку ниже, чтобы открыть мини-приложение и начать путь к эмоциональному благополучию:`;
-    
-    const options = {
-      reply_markup: {
-        inline_keyboard: [
-          [{ text: 'Открыть мини-приложение', web_app: { url: webAppUrl } }]
-        ]
-      }
-    };
-    
-    bot.sendMessage(chatId, welcomeMessage, options);
-  } else {
-    // For group chats, provide instructions without web app buttons
-    const welcomeMessage = `Привет, ${firstName}! 👋
-    
+      
+      const options = {
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: 'Открыть мини-приложение', web_app: { url: webAppUrl } }]
+          ]
+        }
+      };
+      
+      bot.sendMessage(chatId, welcomeMessage, options);
+    } else {
+      // For group chats, provide instructions without web app buttons
+      const welcomeMessage = `Привет, ${firstName}! 👋
+      
 Добро пожаловать в приложение для диагностики эмоционального выгорания! 🧠✨
 
 Для полноценного использования бота, пожалуйста, напишите мне в личные сообщения @psychological_helper_CDEK_bot.
@@ -103,9 +200,10 @@ bot.onText(/\/start/, async (msg) => {
 🔹 Просмотреть статистику (для HR)
 
 Начните прямо сейчас - забота о вашем эмоциональном здоровье важна! 💪`;
-    
-    bot.sendMessage(chatId, welcomeMessage);
-  }
+      
+      bot.sendMessage(chatId, welcomeMessage);
+    }
+  });
 });
 
 // Handle web app data
@@ -235,15 +333,22 @@ function scheduleTestReminder(chatId, days = 30) {
 
 // Function to send test reminder
 function sendTestReminder(chatId) {
-  const user = users.get(chatId);
-  if (!user || !user.notificationsEnabled) return;
-  
-  // Check if we can send web app buttons (only in private chats)
-  // For this example, we'll assume all registered users are in private chats
-  // In a real implementation, you might want to store chat type with user data
-  
-  const message = `🔔 Напоминание о тесте на выгорание!
-  
+  // Get user from database
+  getUserFromDB(chatId, (err, user) => {
+    if (err || !user) {
+      console.error('Error getting user from database:', err);
+      return;
+    }
+    
+    // Check if notifications are enabled
+    if (!user.notifications_enabled) return;
+    
+    // Check if we can send web app buttons (only in private chats)
+    // For this example, we'll assume all registered users are in private chats
+    // In a real implementation, you might want to store chat type with user data
+    
+    const message = `🔔 Напоминание о тесте на выгорание!
+    
 Прошло уже 30 дней с момента вашего последнего теста! 📅
 
 Регулярное прохождение теста поможет вам:
@@ -252,32 +357,33 @@ function sendTestReminder(chatId) {
 🔹 Вовремя заметить признаки выгорания
 
 Нажмите кнопку ниже, чтобы открыть мини-приложение и пройти тест:`;
-  
-  const options = {
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: 'Пройти тест заново', web_app: { url: webAppUrl } }]
-      ]
-    }
-  };
-  
-  bot.sendMessage(chatId, message, options)
-    .catch((error) => {
-      // If web app button fails, send message without buttons
-      if (error.response && error.response.error_code === 400) {
-        const fallbackMessage = `🔔 Напоминание о тесте на выгорание!
-        
-Прошло уже 30 дней с момента вашего последнего теста! 📅
-        
-Регулярное прохождение теста поможет вам отследить изменения в вашем эмоциональном состоянии и получить актуальные рекомендации.
-        
-Пожалуйста, откройте бота в личных сообщениях, чтобы пройти тест.`;
-        
-        bot.sendMessage(chatId, fallbackMessage);
-      } else {
-        console.error('Error sending test reminder:', error);
+    
+    const options = {
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: 'Пройти тест заново', web_app: { url: webAppUrl } }]
+        ]
       }
-    });
+    };
+    
+    bot.sendMessage(chatId, message, options)
+      .catch((error) => {
+        // If web app button fails, send message without buttons
+        if (error.response && error.response.error_code === 400) {
+          const fallbackMessage = `🔔 Напоминание о тесте на выгорание!
+          
+Прошло уже 30 дней с момента вашего последнего теста! 📅
+          
+Регулярное прохождение теста поможет вам отследить изменения в вашем эмоциональном состоянии и получить актуальные рекомендации.
+          
+Пожалуйста, откройте бота в личных сообщениях, чтобы пройти тест.`;
+          
+          bot.sendMessage(chatId, fallbackMessage);
+        } else {
+          console.error('Error sending test reminder:', error);
+        }
+      });
+  });
 }
 
 // Function to send motivational message
@@ -399,19 +505,36 @@ app.post('/api/test-completed', async (req, res) => {
     return res.status(400).json({ error: 'Chat ID is required' });
   }
   
-  // Update user data in memory
-  if (users.has(chatId)) {
-    const user = users.get(chatId);
-    user.lastTestDate = new Date();
-    user.nextTestDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days from now
-    users.set(chatId, user);
-    
-    // Schedule next reminder
-    scheduleTestReminder(chatId, 30);
-    
-    // Schedule periodic notifications
-    schedulePeriodicNotifications(chatId);
-  }
+  // Update user data in database
+  const userData = {
+    firstName: '', // We'll get this from the database
+    lastTestDate: new Date().toISOString(),
+    nextTestDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
+    notificationsEnabled: true
+  };
+  
+  // Get user from database first
+  getUserFromDB(chatId, (err, user) => {
+    if (err || !user) {
+      console.error('Error getting user from database:', err);
+      // Continue with backend update even if database update fails
+    } else {
+      // Update user in database
+      userData.firstName = user.first_name || '';
+      updateUserInDB(chatId, userData, (updateErr) => {
+        if (updateErr) {
+          console.error('Error updating user in database:', updateErr);
+          // Continue with backend update even if database update fails
+        }
+        
+        // Schedule next reminder
+        scheduleTestReminder(chatId, 30);
+        
+        // Schedule periodic notifications
+        schedulePeriodicNotifications(chatId);
+      });
+    }
+  });
   
   // Also update the backend with test completion
   try {
@@ -486,39 +609,80 @@ bot.onText(/\/stats/, async (msg) => {
         
         bot.sendMessage(chatId, statsMessage);
       } else {
-        // Fallback to in-memory data if backend is not available
-        const totalUsers = users.size;
-        const recentTests = Array.from(users.values()).filter(user =>
-          user.lastTestDate &&
-          new Date() - new Date(user.lastTestDate) < 7 * 24 * 60 * 60 * 1000
-        ).length;
-        
-        const statsMessage = `📊 Статистика по сотрудникам:
+        // Fallback to database data if backend is not available
+        db.get('SELECT COUNT(*) as totalUsers FROM users', [], (err, row) => {
+          if (err) {
+            console.error('Error getting user count:', err);
+            bot.sendMessage(chatId, 'Произошла ошибка при получении статистики. Пожалуйста, попробуйте позже.');
+            return;
+          }
+          
+          const totalUsers = row.totalUsers;
+          
+          // Get recent tests from database
+          db.get(`
+            SELECT COUNT(*) as recentTests
+            FROM users
+            WHERE last_test_date IS NOT NULL
+            AND last_test_date > datetime('now', '-7 days')
+          `, [], (err, row) => {
+            if (err) {
+              console.error('Error getting recent tests:', err);
+              bot.sendMessage(chatId, 'Произошла ошибка при получении статистики. Пожалуйста, попробуйте позже.');
+              return;
+            }
+            
+            const recentTests = row.recentTests;
+            
+            const statsMessage = `📊 Статистика по сотрудникам:
     
 👥 Всего пользователей: ${totalUsers}
 📝 Тестов пройдено за последнюю неделю: ${recentTests}
     
 Для получения подробной статистики по отдельным сотрудникам используйте мини-приложение с правами HR.`;
-        
-        bot.sendMessage(chatId, statsMessage);
+            
+            bot.sendMessage(chatId, statsMessage);
+          });
+        });
       }
     } catch (error) {
-      // Fallback to in-memory data if backend is not available
+      // Fallback to database data if backend is not available
       console.error('Error fetching statistics from backend:', error);
-      const totalUsers = users.size;
-      const recentTests = Array.from(users.values()).filter(user =>
-        user.lastTestDate &&
-        new Date() - new Date(user.lastTestDate) < 7 * 24 * 60 * 60 * 1000
-      ).length;
       
-      const statsMessage = `📊 Статистика по сотрудникам:
+      db.get('SELECT COUNT(*) as totalUsers FROM users', [], (err, row) => {
+        if (err) {
+          console.error('Error getting user count:', err);
+          bot.sendMessage(chatId, 'Произошла ошибка при получении статистики. Пожалуйста, попробуйте позже.');
+          return;
+        }
+        
+        const totalUsers = row.totalUsers;
+        
+        // Get recent tests from database
+        db.get(`
+          SELECT COUNT(*) as recentTests
+          FROM users
+          WHERE last_test_date IS NOT NULL
+          AND last_test_date > datetime('now', '-7 days')
+        `, [], (err, row) => {
+          if (err) {
+            console.error('Error getting recent tests:', err);
+            bot.sendMessage(chatId, 'Произошла ошибка при получении статистики. Пожалуйста, попробуйте позже.');
+            return;
+          }
+          
+          const recentTests = row.recentTests;
+          
+          const statsMessage = `📊 Статистика по сотрудникам:
     
 👥 Всего пользователей: ${totalUsers}
 📝 Тестов пройдено за последнюю неделю: ${recentTests}
     
 Для получения подробной статистики по отдельным сотрудникам используйте мини-приложение с правами HR.`;
-      
-      bot.sendMessage(chatId, statsMessage);
+          
+          bot.sendMessage(chatId, statsMessage);
+        });
+      });
     }
   } else {
     // For group chats, provide instructions
@@ -552,53 +716,63 @@ app.get('/api/user-stats/:chatId', async (req, res) => {
         notificationsEnabled: userData.notifications_enabled
       });
     } else if (response.status === 404) {
-      // User not found in backend, try in-memory storage
-      if (!users.has(chatId)) {
-        return res.status(404).json({ error: 'User not found' });
-      }
-      
-      const user = users.get(chatId);
-      return res.json({
-        firstName: user.firstName,
-        lastTestDate: user.lastTestDate,
-        nextTestDate: user.nextTestDate,
-        notificationsEnabled: user.notificationsEnabled
+      // User not found in backend, try database storage
+      getUserFromDB(chatId, (err, user) => {
+        if (err || !user) {
+          return res.status(404).json({ error: 'User not found' });
+        }
+        
+        return res.json({
+          firstName: user.first_name,
+          lastTestDate: user.last_test_date,
+          nextTestDate: user.next_test_date,
+          notificationsEnabled: user.notifications_enabled === 1
+        });
       });
     } else {
-      // Backend error, fallback to in-memory storage
+      // Backend error, fallback to database storage
       console.error('Backend API error:', response.status);
-      if (!users.has(chatId)) {
-        return res.status(404).json({ error: 'User not found' });
-      }
-      
-      const user = users.get(chatId);
-      return res.json({
-        firstName: user.firstName,
-        lastTestDate: user.lastTestDate,
-        nextTestDate: user.nextTestDate,
-        notificationsEnabled: user.notificationsEnabled
+      getUserFromDB(chatId, (err, user) => {
+        if (err || !user) {
+          return res.status(404).json({ error: 'User not found' });
+        }
+        
+        return res.json({
+          firstName: user.first_name,
+          lastTestDate: user.last_test_date,
+          nextTestDate: user.next_test_date,
+          notificationsEnabled: user.notifications_enabled === 1
+        });
       });
     }
   } catch (error) {
-    // Network error, fallback to in-memory storage
+    // Network error, fallback to database storage
     console.error('Error fetching user stats from backend:', error);
-    if (!users.has(chatId)) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-    
-    const user = users.get(chatId);
-    return res.json({
-      firstName: user.firstName,
-      lastTestDate: user.lastTestDate,
-      nextTestDate: user.nextTestDate,
-      notificationsEnabled: user.notificationsEnabled
+    getUserFromDB(chatId, (err, user) => {
+      if (err || !user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      
+      return res.json({
+        firstName: user.first_name,
+        lastTestDate: user.last_test_date,
+        nextTestDate: user.next_test_date,
+        notificationsEnabled: user.notifications_enabled === 1
+      });
     });
   }
 });
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.json({ status: 'OK', users: users.size });
+  db.get('SELECT COUNT(*) as userCount FROM users', [], (err, row) => {
+    if (err) {
+      console.error('Error getting user count:', err);
+      return res.status(500).json({ status: 'Error', error: 'Database error' });
+    }
+    
+    res.json({ status: 'OK', users: row.userCount });
+  });
 });
 
 // Start server
@@ -611,7 +785,16 @@ process.on('SIGINT', () => {
   console.log('Shutting down gracefully...');
   // Clear all timers
   notificationTimers.forEach(timer => clearTimeout(timer));
-  process.exit(0);
+  
+  // Close database connection
+  db.close((err) => {
+    if (err) {
+      console.error('Error closing database:', err.message);
+    } else {
+      console.log('Database connection closed.');
+    }
+    process.exit(0);
+  });
 });
 
 module.exports = app;
